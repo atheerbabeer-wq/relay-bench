@@ -1,0 +1,1028 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><link rel='icon' type='image/svg+xml' href='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZjFkMjciLz48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNGNjNGVmIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzUgMTIgMjEgMzZoMTBsLTMgMTYgMTUtMjVIMzN6IiBmaWxsPSIjZjJiMTQ2Ii8+PC9zdmc+'><style>[hidden]{display:none!important}body{margin:0}img{max-width:100%}</style></head><body>
+<title>Relay Training Bench</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMwZjFkMjciLz48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyMiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNGNjNGVmIiBzdHJva2Utd2lkdGg9IjQiLz48cGF0aCBkPSJNMzUgMTIgMjEgMzZoMTBsLTMgMTYgMTUtMjVIMzN6IiBmaWxsPSIjZjJiMTQ2Ii8+PC9zdmc+">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a test bench. Tab strip of relay families; each bench = controls on the left (system vs settings), live relay face + chart on the right, plain-language notes below. */
+:root{
+  --bg:#e3e8ed; --panel:#f6f8fa; --sunk:#eaeff3; --line:#bfcad3; --fg:#0f1d27; --mute:#4f606c;
+  --accent:#00709b; --accent-soft:#d0e7f1; --set:#6a45a3; --set-soft:#e6ddf4;
+  --ok:#17834a; --ok-soft:#d2eedd; --warn:#a96300; --warn-soft:#fae4bd; --trip:#c0282b; --trip-soft:#f7d6d3;
+  --hero:#0f1d27; --hero-fg:#e8f1f6; --shadow:0 1px 2px rgba(15,29,39,.06),0 8px 24px -12px rgba(15,29,39,.18);
+  --display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0a1117; --panel:#111b23; --sunk:#071016; --line:#243541; --fg:#e1ebf1; --mute:#8ba0ae;
+  --accent:#4cc4ef; --accent-soft:#103446; --set:#b89cf0; --set-soft:#271f3d;
+  --ok:#47d088; --ok-soft:#10301f; --warn:#f2b146; --warn-soft:#3a2909; --trip:#ff6f66; --trip-soft:#421715;
+  --hero:#050b10; --hero-fg:#e1ebf1; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.7); color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0a1117; --panel:#111b23; --sunk:#071016; --line:#243541; --fg:#e1ebf1; --mute:#8ba0ae;
+  --accent:#4cc4ef; --accent-soft:#103446; --set:#b89cf0; --set-soft:#271f3d;
+  --ok:#47d088; --ok-soft:#10301f; --warn:#f2b146; --warn-soft:#3a2909; --trip:#ff6f66; --trip-soft:#421715;
+  --hero:#050b10; --hero-fg:#e1ebf1; --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -14px rgba(0,0,0,.7); color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.55 var(--body);padding-inline:16px;padding-block:20px 56px}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:34px;font-weight:700;letter-spacing:.01em}
+h2{font-size:26px;font-weight:600}
+h3{font-size:18px;font-weight:600;letter-spacing:.02em}
+p{margin:0}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+header{display:flex;flex-direction:column;gap:8px}
+header p{max-width:70ch;color:var(--mute)}
+.ansi{font:600 12px var(--mono);background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:3px;white-space:nowrap}
+
+nav{display:flex;flex-wrap:wrap;gap:6px;border-bottom:2px solid var(--line);padding-bottom:8px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-top:6px}
+nav button{font:600 15px var(--display);letter-spacing:.03em;color:var(--mute);background:transparent;border:1px solid transparent;border-radius:4px;padding:6px 12px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+nav button small{font:500 11px var(--mono);opacity:.8}
+nav button:hover{color:var(--fg);border-color:var(--line)}
+nav button[aria-selected="true"]{background:var(--fg);color:var(--bg)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+section.tab{display:flex;flex-direction:column;gap:20px}
+section.tab[hidden],.fig[hidden]{display:none}
+.lead{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+.lead>div{display:flex;flex-direction:column;gap:10px;min-width:0}
+.lead p{max-width:68ch}
+.analogy{background:var(--panel);border-left:3px solid var(--accent);padding:12px 14px}
+.analogy b{font-family:var(--display);font-size:16px;letter-spacing:.02em}
+
+.bench{display:grid;grid-template-columns:minmax(0,330px) minmax(0,1fr);gap:16px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:16px}
+.bench>div{min-width:0;display:flex;flex-direction:column;gap:14px}
+fieldset{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;min-width:0}
+legend{font:600 12px var(--mono);letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:3px;margin-bottom:10px}
+fieldset.sys legend{background:var(--accent-soft);color:var(--accent)}
+fieldset.set legend{background:var(--set-soft);color:var(--set)}
+.ctl{display:flex;flex-direction:column;gap:3px}
+.ctl .row{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.ctl label{font-weight:600;font-size:14px}
+.ctl output{font:600 14px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.ctl input[type=range]{width:100%;accent-color:var(--accent);margin:2px 0}
+fieldset.set input[type=range]{accent-color:var(--set)}
+.ctl select{font:14px var(--body);padding:6px;border:1px solid var(--line);border-radius:4px;background:var(--bg);color:var(--fg);width:100%}
+.help{font-size:12.5px;color:var(--mute);line-height:1.4}
+.presets{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.presets span{font:500 12px var(--mono);color:var(--mute);letter-spacing:.06em;text-transform:uppercase}
+.preset{font:500 13px var(--body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.preset:hover{border-color:var(--accent);color:var(--accent)}
+
+.face{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:4px;padding:12px;background:var(--sunk)}
+.lamp{flex:none;width:22px;height:22px;border-radius:50%;margin-top:3px;background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft)}
+.face[data-s=warn] .lamp{background:var(--warn);box-shadow:0 0 0 4px var(--warn-soft)}
+.face[data-s=trip] .lamp{background:var(--trip);box-shadow:0 0 0 4px var(--trip-soft)}
+.face[data-s=warn]{border-color:var(--warn)} .face[data-s=trip]{border-color:var(--trip)}
+.face div{min-width:0;display:flex;flex-direction:column;gap:4px}
+.face strong{font:600 19px var(--display);letter-spacing:.02em}
+.face p{font-size:14px}
+.read{display:flex;flex-wrap:wrap;gap:6px 18px;font:13px var(--mono);font-variant-numeric:tabular-nums;color:var(--mute)}
+.read b{color:var(--fg);font-weight:600}
+.fig{overflow-x:auto}
+svg{display:block;width:100%;height:auto;max-width:640px}
+svg text{font:12px var(--mono);fill:var(--mute)}
+svg .t-fg{fill:var(--fg);font-weight:600} svg .t-acc{fill:var(--accent);font-weight:600} svg .t-trip{fill:var(--trip);font-weight:600} svg .t-ok{fill:var(--ok);font-weight:600} svg .t-set{fill:var(--set);font-weight:600}
+svg .ax{stroke:var(--mute);stroke-width:1.2;fill:none} svg .grid{stroke:var(--line);stroke-width:1;fill:none}
+svg .curve{stroke:var(--set);stroke-width:2.5;fill:none} svg .acc{stroke:var(--accent);stroke-width:2.5;fill:none}
+svg .dash{stroke:var(--mute);stroke-width:1.3;stroke-dasharray:5 4;fill:none}
+svg .tripline{stroke:var(--trip);stroke-width:2.5;fill:none} svg .okline{stroke:var(--ok);stroke-width:2.5;fill:none}
+svg .f-trip{fill:var(--trip-soft);stroke:none} svg .f-ok{fill:var(--ok-soft);stroke:none} svg .f-warn{fill:var(--warn-soft);stroke:none}
+svg .f-set{fill:var(--set-soft);stroke:var(--set);stroke-width:1.5} svg .f-none{fill:none;stroke:var(--set);stroke-width:2}
+svg .dot{fill:var(--trip);stroke:var(--panel);stroke-width:2} svg .dotok{fill:var(--ok);stroke:var(--panel);stroke-width:2}
+svg .box{fill:var(--panel);stroke:var(--fg);stroke-width:1.5} svg .wire{stroke:var(--fg);stroke-width:2;fill:none} svg .bus{stroke:var(--fg);stroke-width:5;fill:none}
+svg .solid{fill:var(--fg)} svg .f-acc{fill:var(--accent)} svg .f-tripsolid{fill:var(--trip)}
+
+.live{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:4px;padding:10px;background:var(--bg)}
+.run{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font:13px var(--mono)}
+.run .bar{flex:1 1 110px;height:8px;background:var(--sunk);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.run .bar i{display:block;height:100%;width:0;background:var(--warn)} .run .bar i.tr{background:var(--trip)}
+.run span{flex:3 1 220px;min-width:0;font-weight:600}
+svg .flow{stroke:var(--accent);stroke-width:6;stroke-linecap:round;stroke-dasharray:1 15;fill:none}
+svg .flow.hot{stroke:var(--trip)} svg.open .flow{opacity:0}
+svg .brk{fill:var(--fg);stroke:var(--fg);stroke-width:1.5} svg.open .brk{fill:var(--panel);stroke:var(--trip);stroke-width:2.5}
+svg .wo{display:none} svg.open .wo{display:inline} svg.open .wc{display:none}
+svg[data-st=tm] .rl{fill:var(--warn-soft);stroke:var(--warn)} svg[data-st=tr] .rl{fill:var(--trip-soft);stroke:var(--trip)}
+svg .w27{stroke:var(--warn);stroke-width:1.4;stroke-dasharray:5 4} svg .w59{stroke:var(--trip);stroke-width:1.4;stroke-dasharray:5 4}
+#d_sc{cursor:ew-resize;touch-action:none}
+svg .cbc{fill:var(--fg);stroke:var(--fg);stroke-width:1.5} svg .cbo{fill:var(--panel);stroke:var(--trip);stroke-width:2.5} svg .cbf{fill:var(--warn);stroke:var(--warn);stroke-width:2.5}
+svg .tb{fill:var(--warn)} svg .rt{fill:var(--warn-soft);stroke:var(--warn)} svg .rx{fill:var(--trip-soft);stroke:var(--trip)}
+.quiz{border-top:2px solid var(--fg);padding-top:14px;display:flex;flex-direction:column;gap:16px}
+.quiz .qh{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:baseline}
+.quiz .score{font:600 14px var(--mono)}
+.qq{display:flex;flex-direction:column;gap:8px}
+.qq>p:first-child{font-weight:600;max-width:72ch}
+.qo{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px}
+.qo button{font:14px/1.4 var(--body);text-align:left;padding:9px 12px;border:1px solid var(--line);border-radius:4px;background:var(--panel);color:var(--fg);cursor:pointer}
+.qo button:hover:not(:disabled){border-color:var(--accent)}
+.qo button:disabled{cursor:default;color:var(--fg)}
+.qo button.ok{background:var(--ok-soft);border-color:var(--ok);font-weight:600}
+.qo button.no{background:var(--trip-soft);border-color:var(--trip)}
+.qe{font-size:14px;color:var(--mute);max-width:72ch}
+.retry{font:500 13px var(--body);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:4px 12px;cursor:pointer}
+.ctl.chg label::after{content:" · changed";color:var(--warn);font:500 12px var(--mono)}
+/*n*/.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.notes>div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.notes ul,.notes ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.site{border-top:2px solid var(--fg);padding-top:10px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+td:first-child{white-space:nowrap}
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+.chain div{flex:1 1 150px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.chain b{font:600 16px var(--display)} .chain span{font-size:13px;color:var(--mute)}
+.chain i{font:500 11px var(--mono);font-style:normal;color:var(--accent);letter-spacing:.1em;text-transform:uppercase}
+.goals{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px 24px}
+.goals div{display:flex;flex-direction:column;gap:2px}
+.goals b{font:600 17px var(--display)}
+.linkbtn{font:inherit;color:var(--accent);background:none;border:0;padding:0;cursor:pointer;text-decoration:underline}
+@media (max-width:820px){ .lead,.bench{grid-template-columns:minmax(0,1fr)} h1{font-size:28px} nav button small{display:none} }
+/* ---- control-panel theme ---- */
+header{background:var(--hero);color:var(--hero-fg);border-radius:10px;padding:22px 22px 20px;position:relative;overflow:hidden;
+  border:1px solid var(--line);background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px)}
+header h1{font-size:40px;letter-spacing:.01em}
+header .eyebrow{color:#7fd4f3}
+header::after{content:"";position:absolute;right:22px;top:24px;width:12px;height:12px;border-radius:50%;background:#47d088;box-shadow:0 0 0 4px rgba(71,208,136,.18),0 0 14px #47d088;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.45}}
+nav{gap:4px;border-bottom:0;padding-block:8px;background:var(--bg)}
+nav button{border-radius:999px;padding:7px 14px;border:1px solid var(--line);background:var(--panel)}
+nav button[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel);box-shadow:0 0 0 3px var(--accent-soft)}
+section.tab>h2{font-size:30px}
+.bench{border-radius:10px;box-shadow:var(--shadow)}
+.live{background-color:var(--sunk);border-radius:8px;background-image:repeating-linear-gradient(0deg,color-mix(in srgb,var(--line) 35%,transparent) 0 1px,transparent 1px 20px),repeating-linear-gradient(90deg,color-mix(in srgb,var(--line) 35%,transparent) 0 1px,transparent 1px 20px)}
+.face{border-radius:8px;border-left-width:5px;background:var(--panel)}
+.face[data-s=ok]{border-left-color:var(--ok)}
+.face[data-s=warn] .lamp,.face[data-s=trip] .lamp{animation:pulse .9s ease-in-out infinite}
+.face strong{font-family:var(--mono);font-size:15px;letter-spacing:.04em;text-transform:uppercase}
+.ctl .help{font-size:12px}
+/* story player */
+.story{display:flex;flex-direction:column;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;box-shadow:var(--shadow)}
+.chap{display:flex;flex-wrap:wrap;gap:6px}
+.chap button{font:600 14px var(--display);letter-spacing:.03em;display:flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--mute);cursor:pointer}
+.chap button b{font:600 12px var(--mono);width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--panel);border:1px solid var(--line)}
+.chap button.past{color:var(--fg)} .chap button.past b{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.chap button.on{color:var(--fg);border-color:var(--accent);background:var(--accent-soft)} .chap button.on b{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.say{font:400 19px/1.55 var(--body);max-width:68ch;min-height:3.2em;margin:0}
+.say.in{animation:rise .45s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}}
+.ctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sb{font:600 14px var(--body);padding:7px 16px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--fg);cursor:pointer}
+.sb:hover{border-color:var(--accent)} .sb.pri{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.prog{flex:1 1 120px;height:4px;border-radius:2px;background:var(--line);overflow:hidden;visibility:hidden}
+.story.playing .prog{visibility:visible} .prog i{display:block;height:100%;width:0;background:var(--accent)}
+.story.playing .prog i{animation:fill 7s linear forwards}
+@keyframes fill{to{width:100%}}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{display:flex;flex-direction:column;gap:6px;align-items:flex-start;text-align:left;padding:16px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);cursor:pointer;box-shadow:var(--shadow);transition:transform .15s,border-color .15s}
+.card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.card b{font:600 20px var(--display)} .card span:last-child{color:var(--mute);font-size:14px}
+@media (prefers-reduced-motion: reduce){ *{animation:none!important;transition:none!important} }
+/* ---- mango accent, fit, quiz lock ---- */
+:root{--mango:#f4a51c;--mango-ink:#2a1a00;--mango-soft:#fff1cf;--mango-line:#e09612}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--mango:#ffb627;--mango-ink:#241600;--mango-soft:#3a2a07;--mango-line:#ffb627} }
+:root[data-theme="dark"]{--mango:#ffb627;--mango-ink:#241600;--mango-soft:#3a2a07;--mango-line:#ffb627}
+.wrap{max-width:1280px}
+header{border-bottom:4px solid var(--mango)}
+header .eyebrow{color:var(--mango)}
+nav{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:thin;padding-inline:2px}
+nav button{flex:none;white-space:nowrap;padding:7px 12px}
+nav button[aria-selected="true"]{background:var(--mango);border-color:var(--mango);color:var(--mango-ink);box-shadow:0 0 0 3px var(--mango-soft)}
+.bench,.quiz,.story{scroll-margin-top:72px}
+.live .fig svg{max-width:none}
+#bs_sc{max-width:860px;margin:0 auto}
+.story{border-left:5px solid var(--mango)}
+.chap button.on{border-color:var(--mango);background:var(--mango-soft)} .chap button.on b{background:var(--mango);border-color:var(--mango);color:var(--mango-ink)}
+.sb.pri{background:var(--mango);border-color:var(--mango);color:var(--mango-ink)}
+.prog i{background:var(--mango)}
+.card:hover{border-color:var(--mango)} .card{border-top:4px solid var(--mango)}
+.quiz{border-top:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;box-shadow:var(--shadow)}
+.quiz.locked{flex-direction:row;align-items:flex-start;gap:16px;border-style:dashed;color:var(--mute)}
+.quiz.locked h3{color:var(--fg)} .quiz.locked p{margin:4px 0 10px}
+.lockic{color:var(--mango);flex:none;margin-top:2px}
+.lp{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font:13px var(--mono);margin-top:6px}
+.lp span{min-width:150px} .lb{flex:1 1 140px;max-width:260px;height:8px;border-radius:4px;background:var(--sunk);border:1px solid var(--line);overflow:hidden}
+.lb i{display:block;height:100%;background:var(--mango)} .lp em{font-style:normal}
+.quiz.fresh{border-color:var(--mango);animation:glow 1.2s ease-in-out 3}
+@keyframes glow{50%{box-shadow:0 0 0 6px var(--mango-soft),0 0 28px var(--mango)}}
+.qbadge{display:inline-block;font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:var(--mango);color:var(--mango-ink);padding:2px 8px;border-radius:999px;margin-bottom:4px}
+.qtag{align-self:flex-start;font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:3px;background:var(--accent-soft);color:var(--accent)}
+.qtag.sc{background:var(--mango-soft);color:var(--fg)}
+.test{align-self:flex-start;font:600 13px var(--body);padding:6px 14px;border-radius:999px;border:1.5px solid var(--mango);background:transparent;color:var(--fg);cursor:pointer}
+.test:hover{background:var(--mango-soft)} .test.done{border-style:dashed}
+.qend{display:flex;gap:12px;align-items:center;padding:12px 14px;border-radius:8px;background:var(--mango-soft);border:1px solid var(--mango)}
+.qend b{font:700 24px var(--display)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,140%);display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;max-width:calc(100% - 32px);background:var(--hero);color:var(--hero-fg);border:2px solid var(--mango);border-radius:12px;padding:12px 16px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);transition:transform .35s ease;z-index:20}
+#toast.show{transform:translate(-50%,0)} #toast b{color:var(--mango);font:700 17px var(--display)}
+@media (max-width:640px){ .quiz.locked{flex-direction:column} }
+/* ---- creator credit as a relay event-log record ---- */
+.evlog{display:inline-flex;width:fit-content;max-width:100%;flex-basis:auto!important;flex-wrap:wrap;align-items:center;gap:6px 10px;font:500 12px var(--mono);letter-spacing:.08em;color:#8fa2b0;
+  padding:8px 12px;border:1px solid rgba(255,255,255,.12);border-radius:6px;background:rgba(0,0,0,.25)}
+.sig{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:10px;padding-block:18px 4px;color:var(--mute);font:500 13px var(--mono);letter-spacing:.06em}
+.sig::before,.sig::after{content:"";flex:1 1 40px;max-width:160px;height:2px;background:linear-gradient(90deg,transparent,var(--mango))}
+.sig::after{transform:scaleX(-1)}
+.sig b{color:var(--fg);font:700 16px var(--display);letter-spacing:.03em}
+/* ---- one colour per relay (replaces the all-mango accent) ---- */
+body{--mango:#19a7d8;--mango-ink:#0d1418}
+body[data-tab=oc]{--mango:#ef6a3c}
+body[data-tab=under]{--mango:#20b2a6}
+body[data-tab=volt]{--mango:#e3b417}
+body[data-tab=dist]{--mango:#4b8cf0}
+body[data-tab=diff]{--mango:#e0508a}
+body[data-tab=dir]{--mango:#3dbb6f}
+body[data-tab=coord]{--mango:#a77be6}
+body{--mango-soft:color-mix(in srgb,var(--mango) 18%,var(--panel));--mango-line:var(--mango)}
+nav button[data-t=basics]{--c:#19a7d8} nav button[data-t=oc]{--c:#ef6a3c} nav button[data-t=under]{--c:#20b2a6} nav button[data-t=volt]{--c:#e3b417}
+nav button[data-t=dist]{--c:#4b8cf0} nav button[data-t=diff]{--c:#e0508a} nav button[data-t=dir]{--c:#3dbb6f} nav button[data-t=coord]{--c:#a77be6}
+nav button{border-bottom:3px solid var(--c)}
+.card[data-go=oc]{border-top-color:#ef6a3c} .card[data-go=under]{border-top-color:#20b2a6} .card[data-go=volt]{border-top-color:#e3b417}
+.card[data-go=dist]{border-top-color:#4b8cf0} .card[data-go=diff]{border-top-color:#e0508a} .card[data-go=dir]{border-top-color:#3dbb6f} .card[data-go=coord]{border-top-color:#a77be6}
+header .eyebrow{color:#8fa2b0}
+/* editable credit */
+.evlog{gap:10px}
+#evname{color:#e8f1f6;font:600 15px var(--mono);letter-spacing:.04em;outline:none;border-bottom:1px dashed transparent;padding:1px 2px;cursor:text;min-width:4ch}
+#evname:hover,#evname:focus{border-bottom-color:var(--mango)}
+#toast.joke b{color:var(--mango)}
+#toast .tx{margin-left:auto;background:none;border:0;color:inherit;font:400 22px/1 var(--body);cursor:pointer;opacity:.7;padding:0 4px}
+#toast .tx:hover{opacity:1}
+.sig:empty{display:none}
+/* ---- splash screen ---- */
+#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:var(--hero);color:var(--hero-fg);transition:opacity .5s ease,visibility .5s;cursor:pointer;
+  background-image:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px),repeating-linear-gradient(90deg,rgba(255,255,255,.035) 0 1px,transparent 1px 22px)}
+#splash.out{opacity:0;visibility:hidden}
+#splash .sp{display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding:16px}
+#splash svg{width:min(320px,70vw);height:auto;max-width:none}
+#splash .wv{fill:none;stroke:#4cc4ef;stroke-width:3;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;animation:draw 1.1s ease-out forwards}
+#splash .p2{stroke:#b89cf0;animation-delay:.15s} #splash .p3{stroke:#47d088;animation-delay:.3s}
+#splash .rg{fill:none;stroke:#4cc4ef;stroke-width:4;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:100;transform:rotate(-90deg);transform-origin:160px 40px;animation:draw 1s ease-in-out forwards}
+#splash .ln{fill:none;stroke:#8fa2b0;stroke-width:3} #splash .dt{fill:#e8f1f6}
+#splash .bd{fill:none;stroke:#4cc4ef;stroke-width:4;stroke-linecap:round;transform-origin:130px 52px;transform:rotate(-35deg);animation:close .6s cubic-bezier(.5,0,.2,1.4) .5s forwards}
+#splash.v3 .ln{animation:live .4s ease .95s forwards}
+#splash .tp{fill:#ff6f66;opacity:0;animation:pop .3s ease-out 1s forwards}
+#splash.v4 .wv{stroke:#e8f1f6}
+#splash p{margin:0;font:500 13px var(--mono);letter-spacing:.08em;color:#8fa2b0;opacity:0;animation:up .5s ease-out .7s forwards}
+@keyframes close{to{transform:rotate(0)}}
+@keyframes live{to{stroke:#4cc4ef}}
+#splash .bl{fill:#ffb627;opacity:0;animation:pop .3s ease-out .9s forwards}
+#splash h2{font:700 clamp(34px,7vw,56px)/1 var(--display);letter-spacing:.02em;margin:0;opacity:0;animation:up .5s ease-out .35s forwards}
+#splash h2 span{display:block;font:500 clamp(13px,2.4vw,16px) var(--mono);letter-spacing:.42em;text-transform:uppercase;color:#8fa2b0;margin-top:10px}
+#splash .lb2{width:180px;height:3px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}
+#splash .lb2 i{display:block;height:100%;width:0;background:#4cc4ef;animation:fill 1.5s ease-in-out forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* ---- relay-of-the-load splash ---- */
+#splash .sp{gap:16px;max-width:560px}
+#splash h2{font-size:clamp(28px,5vw,40px)}
+#splash h2 span{margin-top:6px}
+#splash .wv{stroke:var(--sc)}
+#splash .p2{stroke:#b89cf0} #splash .p3{stroke:#4cc4ef}
+#splash .lim{fill:none;stroke:#ff6f66;stroke-width:1.5;stroke-dasharray:5 5;opacity:.8} #splash .lim.lo{stroke:#8fa2b0}
+#splash .ln{fill:none;stroke:#8fa2b0;stroke-width:3} #splash .bus2{fill:none;stroke:#e8f1f6;stroke-width:5}
+#splash .rl{fill:none;stroke:#e8f1f6;stroke-width:2}
+#splash .zb{fill:var(--sc);opacity:.85;transform-box:fill-box;transform-origin:left;transform:scaleX(0);animation:grow .7s ease-out .3s forwards}
+#splash .zb.z2{opacity:.4;animation-delay:.6s}
+#splash .bl{fill:var(--sc)}
+#splash .zone{fill:none;stroke:#e8f1f6;stroke-width:2}
+#splash .ar{fill:none;stroke:var(--sc);stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:100;stroke-dashoffset:100;animation:draw .8s ease-out .2s forwards}
+#splash .ar.a2{animation-delay:.7s}
+#splash .arx{fill:none;stroke:#ff6f66;stroke-width:3;stroke-linecap:round;opacity:0;animation:pop .3s ease-out 1s forwards}
+#splash .spt{fill:#e8f1f6;font:600 13px var(--mono)}
+#splash .tbk{fill:rgba(255,255,255,.08)}
+#splash .tb{fill:var(--sc);transform-box:fill-box;transform-origin:left;transform:scaleX(0)}
+#splash .t1{fill:#ff6f66;animation:grow .8s linear .2s forwards}
+#splash .t2{animation:grow 1.6s linear .2s forwards;animation-name:grow-half}
+#splash .t3{opacity:.6;animation:grow 1.6s linear .2s forwards;animation-name:grow-third}
+@keyframes grow{to{transform:scaleX(1)}} @keyframes grow-half{to{transform:scaleX(.55)}} @keyframes grow-third{to{transform:scaleX(.4)}}
+#splash .spd{display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;animation:up .5s ease-out .5s forwards}
+#spno{font:600 12px var(--mono);letter-spacing:.12em;padding:2px 10px;border-radius:999px;background:var(--sc);color:#0d1418}
+#spname{font:600 22px var(--display);letter-spacing:.02em;color:#e8f1f6}
+#splash .spd p{margin:0;font:400 16px/1.5 var(--body);color:#c4d2dc;max-width:46ch;opacity:1;animation:none;letter-spacing:0}
+#splash .lb2 i{background:var(--sc);animation-duration:2.6s}
+#splash .skip{font:500 11px var(--mono);letter-spacing:.1em;color:#5f7380}
+/* ---- splash: relay is the hero, name as a signature ---- */
+#spname{font:700 clamp(30px,6vw,46px)/1.05 var(--display)}
+#spno{font-size:13px;padding:3px 12px}
+#splash .sph{animation-delay:.1s}
+#splash .spd p{font-size:17px}
+#splash svg{width:min(420px,84vw)}
+.spsig{position:absolute;left:0;right:0;bottom:calc(26px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;align-items:center;gap:6px;
+  font:500 12px var(--mono);letter-spacing:.32em;text-transform:uppercase;color:#6f8594;opacity:0;animation:up .6s ease-out .9s forwards}
+.spsig span{color:#e8f1f6;font-weight:600}
+.spsig small{font-size:10px;letter-spacing:.12em;text-transform:none;color:#4f6270}
+</style>
+
+<div id="splash" role="status" aria-label="Atheer the Engineer"><div class="sp">
+  <div class="spd sph"><span id="spno"></span><b id="spname"></b></div>
+  <svg id="spsvg" viewBox="0 0 320 80" aria-hidden="true"></svg>
+  <div class="spd"><p id="spdesc"></p></div>
+  <div class="lb2"><i></i></div></div>
+  <div class="spsig"><span>Atheer</span> the Engineer<small>Click anywhere to skip</small></div></div>
+<script>(function(){
+ var W='M10 40 C 35 0, 60 0, 85 40 S 135 80, 160 40 S 210 0, 235 40 S 285 80, 310 40';
+ var L='M10 40 C 35 0, 60 0, 85 40 S 135 80, 160 40 S 210 0, 235 40 S 285 80, 310 40 S 360 0, 385 40 S 435 80, 460 40';
+ var R={
+  oc:{c:'#ef6a3c',no:'50 / 51',n:'Overcurrent relay',d:'Measures current. The higher it climbs, the faster the relay trips the breaker.',
+   s:'<path class="wv" pathLength="100" d="M10 40 C 30 20,50 20,70 40 S 110 60,130 40 L142 6 L152 76 L162 12 L170 40 C 190 20,210 20,230 40 S 270 60,290 40 L310 40"/><circle class="tp" cx="152" cy="76" r="4"/>'},
+  under:{c:'#20b2a6',no:'37',n:'Undercurrent relay',d:'Watches for current that falls too low, like a pump running dry, and stops the motor.',
+   s:'<path class="lim" d="M10 26H310"/><path class="wv" pathLength="100" d="M10 40 C 30 4,50 4,70 40 S 110 76,130 40 S 170 4,190 40 C 200 32,210 32,220 40 S 240 48,250 40 S 270 32,280 40 S 300 48,310 40"/>'},
+  volt:{c:'#e3b417',no:'27 / 59',n:'Voltage relay',d:'Keeps voltage inside a healthy window. Too low or too high for too long, and it trips.',
+   s:'<path class="lim" d="M10 6H310M10 74H310"/><path class="lim lo" d="M10 18H310M10 62H310"/><path class="wv" pathLength="100" d="'+W+'"/>'},
+  dist:{c:'#4b8cf0',no:'21',n:'Distance relay',d:'Divides voltage by current to find how far away a fault is, then trips by zone.',
+   s:'<path class="ln" d="M24 30H296"/><rect class="rl" x="8" y="22" width="16" height="16"/><path class="bus2" d="M296 16V44"/><rect class="zb" x="24" y="50" width="218" height="8"/><rect class="zb z2" x="24" y="64" width="326" height="8"/><path class="bl" style="transform-origin:200px 30px" d="M204 12 194 32h7l-3 14 11-20h-7z"/>'},
+  diff:{c:'#e0508a',no:'87',n:'Differential relay',d:'Compares current going in and coming out of equipment. Any difference means a fault inside.',
+   s:'<rect class="zone" x="120" y="18" width="80" height="44" rx="4"/><path class="ar" pathLength="100" d="M20 40H112M104 32l8 8-8 8"/><path class="ar a2" pathLength="100" d="M208 40H300M292 32l8 8-8 8"/><text x="160" y="45" text-anchor="middle" class="spt">IN = OUT</text>'},
+  dir:{c:'#3dbb6f',no:'67',n:'Directional relay',d:'Checks which way fault current flows, and trips only for faults in front of it.',
+   s:'<path class="ln" d="M10 40H310"/><rect class="rl" x="150" y="32" width="20" height="16"/><path class="ar" pathLength="100" d="M176 40H300M290 30l10 10-10 10"/><path class="arx" d="M140 40H30M40 30 30 40l10 10M70 26l28 28M98 26 70 54"/>'},
+  seq:{c:'#3dbb6f',no:'47',n:'Phase sequence relay',d:'Makes sure phases A, B and C arrive in the right order, so motors turn the right way.',
+   s:'<defs><clipPath id="spc"><rect x="8" y="0" width="304" height="80"/></clipPath></defs><g clip-path="url(#spc)"><path class="wv" pathLength="100" d="'+L+'"/><path class="wv p2" pathLength="100" transform="translate(-50 0)" d="'+L+'"/><path class="wv p3" pathLength="100" transform="translate(-100 0)" d="'+L+'"/></g>'},
+  coord:{c:'#a77be6',no:'R1 · R2 · R3',n:'Coordination',d:'One fault, several relays. The nearest trips first; the others wait as backup.',
+   s:'<text x="10" y="21" class="spt">R1</text><text x="10" y="45" class="spt">R2</text><text x="10" y="69" class="spt">R3</text><rect class="tbk" x="40" y="12" width="270" height="10"/><rect class="tbk" x="40" y="36" width="270" height="10"/><rect class="tbk" x="40" y="60" width="270" height="10"/><rect class="tb t1" x="40" y="12" width="270" height="10"/><rect class="tb t2" x="40" y="36" width="270" height="10"/><rect class="tb t3" x="40" y="60" width="270" height="10"/>'}
+ };
+ var keys=Object.keys(R), h=(location.hash||'').slice(1), k;
+ if(h==='dir') k=Math.random()<.5?'dir':'seq'; else if(R[h]) k=h;
+ else { var last=''; try{ last=localStorage.getItem('rtb-sp2')||''; }catch(e){}
+   do{ k=keys[Math.floor(Math.random()*keys.length)]; }while(k===last&&keys.length>1); }
+ try{ localStorage.setItem('rtb-sp2',k); }catch(e){}
+ var r=R[k], sp=document.getElementById('splash');
+ sp.style.setProperty('--sc',r.c); sp.className='k-'+k;
+ document.getElementById('spsvg').innerHTML=r.s;
+ document.getElementById('spno').textContent=r.no;
+ document.getElementById('spname').textContent=r.n;
+ document.getElementById('spdesc').textContent=r.d;
+})();</script>
+<div class="wrap">
+<header>
+  <div class="hl"><span class="eyebrow">Low and medium voltage protection</span>
+  <h1>Relay Training Bench</h1></div>
+  <div class="evlog"><span class="evm">COMMISSIONED BY</span><span id="evname" contenteditable="true" spellcheck="false" role="textbox" aria-label="Protected by, editable" title="Go on, type something">Engr. Atheer Babeer</span></div>
+</header>
+
+<nav role="tablist" id="nav">
+  <button role="tab" data-t="basics">Start here</button>
+  <button role="tab" data-t="oc">Overcurrent <small>50/51</small></button>
+  <button role="tab" data-t="under">Undercurrent <small>37</small></button>
+  <button role="tab" data-t="volt">Voltage <small>27/59</small></button>
+  <button role="tab" data-t="dist">Distance <small>21</small></button>
+  <button role="tab" data-t="diff">Differential <small>87</small></button>
+  <button role="tab" data-t="dir">Direction &amp; sequence <small>67/47</small></button>
+  <button role="tab" data-t="coord">Coordination <small>R1·R2·R3</small></button>
+</nav>
+
+<!-- ================= BASICS ================= -->
+<section class="tab" id="basics">
+  <h2>How protection works</h2>
+  <div class="story" data-story="basics"></div>
+  <div class="live"><div class="fig"><svg id="bs_sc" viewBox="0 0 560 170" role="img" aria-label="A source feeding three loads, with a relay and breaker on the middle feeder"></svg></div></div>
+  <h3>Meet the relays</h3>
+  <div class="cards">
+    <button class="card" data-go="oc"><span class="ansi">50 / 51</span><b>Overcurrent</b><span>Too much current?</span></button>
+    <button class="card" data-go="under"><span class="ansi">37</span><b>Undercurrent</b><span>Has the load gone?</span></button>
+    <button class="card" data-go="volt"><span class="ansi">27 / 59</span><b>Voltage</b><span>Voltage too low or high?</span></button>
+    <button class="card" data-go="dist"><span class="ansi">21</span><b>Distance</b><span>How far is the fault?</span></button>
+    <button class="card" data-go="diff"><span class="ansi">87</span><b>Differential</b><span>Does in equal out?</span></button>
+    <button class="card" data-go="dir"><span class="ansi">67 / 47</span><b>Directional and phase sequence</b><span>Which way, and which order?</span></button>
+    <button class="card" data-go="coord"><span class="ansi">R1 · R2 · R3</span><b>Coordination</b><span>Who trips first?</span></button>
+  </div>
+</section>
+
+<!-- ================= OVERCURRENT ================= -->
+<section class="tab" id="oc" hidden>
+  <h2>Overcurrent relay <span class="ansi">50</span> <span class="ansi">51</span></h2>
+  <div class="story" data-story="oc"></div>
+  <div class="bench">
+    <div id="oc_c"></div>
+    <div>
+      <div class="face" id="oc_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="oc_r"></div>
+      <div class="fig"><svg id="oc_s" viewBox="0 0 560 350" role="img" aria-label="Time-current curve"></svg></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ================= UNDERCURRENT ================= -->
+<section class="tab" id="under" hidden>
+  <h2>Undercurrent relay <span class="ansi">37</span></h2>
+  <div class="story" data-story="under"></div>
+  <div class="bench">
+    <div id="u_c"></div>
+    <div>
+      <div class="face" id="u_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="u_r"></div>
+      <div class="fig"><svg id="u_s" viewBox="0 0 560 130" role="img" aria-label="Current band with undercurrent zone"></svg></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ================= VOLTAGE ================= -->
+<section class="tab" id="volt" hidden>
+  <h2>Voltage relays <span class="ansi">27</span> <span class="ansi">59</span></h2>
+  <div class="story" data-story="volt"></div>
+  <div class="bench">
+    <div id="v_c"></div>
+    <div>
+      <div class="face" id="v_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="v_r"></div>
+      <div class="fig"><svg id="v_s" viewBox="0 0 560 130" role="img" aria-label="Voltage band"></svg></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ================= DISTANCE ================= -->
+<section class="tab" id="dist" hidden>
+  <h2>Distance relay <span class="ansi">21</span></h2>
+  <div class="story" data-story="dist"></div>
+  <div class="bench">
+    <div id="d_c"></div>
+    <div>
+      <div class="face" id="d_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="d_r"></div>
+      <div class="fig"><svg id="d_s" viewBox="0 0 440 400" role="img" aria-label="R-X impedance diagram with zones"></svg></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ================= DIFFERENTIAL ================= -->
+<section class="tab" id="diff" hidden>
+  <h2>Differential relay <span class="ansi">87</span></h2>
+  <div class="story" data-story="diff"></div>
+  <div class="bench">
+    <div id="f_c"></div>
+    <div>
+      <div class="face" id="f_face"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="fig"><svg id="f_z" viewBox="0 0 560 120" role="img" aria-label="Protected zone with current in and out"></svg></div>
+      <div class="read" id="f_r"></div>
+      <div class="fig"><svg id="f_s" viewBox="0 0 560 330" role="img" aria-label="Percentage differential characteristic"></svg></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- ================= DIRECTIONAL ================= -->
+<section class="tab" id="dir" hidden>
+  <h2>Directional relay <span class="ansi">67</span></h2>
+  <div class="story" data-story="dir"></div>
+  <div class="bench">
+    <div id="r_c"></div>
+    <div>
+      <div class="face" id="r_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="r_r"></div>
+      <div class="fig"><svg id="r_s" viewBox="0 0 400 380" role="img" aria-label="Phasor diagram with forward and reverse regions" style="max-width:460px"></svg></div>
+    </div>
+  </div>
+
+  <h2>Phase sequence relay <span class="ansi">47</span></h2>
+  
+  <div class="story" data-story="seq"></div>
+  <div class="bench">
+    <div id="p_c"></div>
+    <div>
+      <div class="face" id="p_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="p_r"></div>
+      <div class="fig"><svg id="p_s" viewBox="0 0 560 104" role="img" aria-label="Forward and backward rotating parts of the voltage"></svg></div>
+    </div>
+  </div>
+  
+
+</section>
+
+<!-- ================= COORDINATION ================= -->
+<section class="tab" id="coord" hidden>
+  <h2>Coordination between relays</h2>
+  <div class="story" data-story="coord"></div>
+  <div class="bench">
+    <div id="c_c"></div>
+    <div>
+      <div class="face" id="c_f"><span class="lamp"></span><div><strong></strong><p></p></div></div>
+      <div class="read" id="c_r"></div>
+      <div class="fig"><svg id="c_s" viewBox="0 0 560 330" role="img" aria-label="Three time-current curves"></svg></div>
+    </div>
+  </div>
+  
+</section>
+<footer class="sig"></footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id), S={}, D={};
+const SYS='On the power system', SET='Relay settings';
+function mk(host,defs){
+  let h='',g='';
+  defs.forEach(d=>{ D[d.id]=d; d.host=host; S[d.id]=d.val;
+    if(d.g!==g){ if(g)h+='</fieldset>'; h+=`<fieldset class="${d.g===SYS?'sys':'set'}"><legend>${d.g}</legend>`; g=d.g; }
+    if(d.opts) h+=`<div class="ctl"><label for="${d.id}">${d.label}</label><select id="${d.id}">${d.opts.map(o=>`<option value="${o[0]}"${o[0]===d.val?' selected':''}>${o[1]}</option>`).join('')}</select><p class="help">${d.help}</p></div>`;
+    else h+=`<div class="ctl"><div class="row"><label for="${d.id}">${d.label}</label><output id="${d.id}_o"></output></div><input type="range" id="${d.id}" min="${d.min}" max="${d.max}" step="${d.step}" value="${d.val}"><p class="help">${d.help}</p></div>`;
+  });
+  $(host).innerHTML=h+`</fieldset><div><button class="retry" data-reset="${host}">Reset to original settings</button></div>`;
+}
+function outs(){ for(const id in D){ const d=D[id]; if(!d.opts) $(id+'_o').textContent=S[id]+' '+d.unit; $(id).closest('.ctl').classList.toggle('chg',S[id]!==d.val); } }
+function face(id,s,t,p){ const f=$(id); f.dataset.s=s; f.querySelector('strong').textContent=t; f.querySelector('p').textContent=p; }
+function read(id,pairs){ $(id).innerHTML=pairs.map(p=>`<span>${p[0]} <b>${p[1]}</b></span>`).join(''); }
+const ft=t=>!isFinite(t)?'never':t>100?'over 100 s':t<1?Math.round(t*1000)+' ms':t.toFixed(2)+' s';
+const L=(a,b,c,d,k)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="${k}"/>`;
+const T=(x,y,s,k='',a='start')=>`<text x="${x}" y="${y}" class="${k}" text-anchor="${a}">${s}</text>`;
+const rad=d=>d*Math.PI/180;
+
+mk('oc_c',[
+ {id:'oc_i',g:SYS,label:'Current in the feeder',min:0,max:12000,step:50,val:350,unit:'A',help:'What the CT is measuring right now. Normal full load on this feeder is about 400 A.'},
+ {id:'oc_pu',g:SET,label:'51 pickup',min:200,max:1500,step:25,val:500,unit:'A',help:'The current at which the relay starts timing. Set above the highest normal load, below the smallest fault.'},
+ {id:'oc_tms',g:SET,label:'Time dial (TMS)',min:0.05,max:1,step:0.05,val:0.2,unit:'',help:'Moves the whole curve up or down. Higher means slower. Used to grade with other relays.'},
+ {id:'oc_cv',g:SET,label:'Curve shape',val:'si',opts:[['si','Standard inverse'],['vi','Very inverse'],['ei','Extremely inverse']],help:'How steeply the trip time falls as current rises. Steeper curves grade better with fuses.'},
+ {id:'oc_50',g:SET,label:'50 instantaneous pickup',min:1000,max:12000,step:100,val:4000,unit:'A',help:'Above this current the relay trips with no intentional delay. Set above the largest fault at the next device downstream.'}
+]);
+mk('v_c',[
+ {id:'v_v',g:SYS,label:'Bus voltage',min:0,max:140,step:1,val:100,unit:'%',help:'Measured voltage as a percentage of nominal.'},
+ {id:'v_27',g:SET,label:'27 undervoltage pickup',min:50,max:95,step:1,val:85,unit:'%',help:'Below this voltage the undervoltage element starts timing.'},
+ {id:'v_27t',g:SET,label:'27 time delay',min:0.1,max:5,step:0.1,val:2,unit:'s',help:'How long the voltage must stay low before the relay operates. Long enough to ride through dips.'},
+ {id:'v_59',g:SET,label:'59 overvoltage pickup',min:105,max:130,step:1,val:110,unit:'%',help:'Above this voltage the overvoltage element starts timing.'},
+ {id:'v_59t',g:SET,label:'59 time delay',min:0.1,max:5,step:0.1,val:1,unit:'s',help:'How long the voltage must stay high before the relay operates.'}
+]);
+mk('d_c',[
+ {id:'d_d',g:SYS,label:'Fault position',min:0,max:150,step:1,val:50,unit:'% of line',help:'0% is at the relay, 100% is the far-end bus. Above 100% the fault is on the next section.'},
+ {id:'d_rf',g:SYS,label:'Fault resistance',min:0,max:3,step:0.1,val:0,unit:'Ω',help:'Resistance of the arc or of whatever the conductor touched. A solid fault is 0 Ω.'},
+ {id:'d_z1',g:SET,label:'Zone 1 reach',min:50,max:100,step:1,val:80,unit:'% of line',help:'Trips instantly. Kept short of 100% as a safety margin for measurement error.'},
+ {id:'d_z2',g:SET,label:'Zone 2 reach',min:100,max:150,step:1,val:120,unit:'% of line',help:'Covers the end of the line and backs up the far bus.'},
+ {id:'d_t2',g:SET,label:'Zone 2 time delay',min:0.1,max:1,step:0.05,val:0.3,unit:'s',help:'Gives the relays on the next section time to clear their own faults first.'}
+]);
+mk('f_c',[
+ {id:'f_t',g:SYS,label:'Current passing through',min:0,max:10,step:0.1,val:1,unit:'pu',help:'Current that enters and leaves the zone. Load is about 1 pu. A fault outside the zone can push 8 pu or more through.'},
+ {id:'f_f',g:SYS,label:'Fault current inside the zone',min:0,max:10,step:0.1,val:0,unit:'pu',help:'Current that enters and escapes through an internal fault. Zero when the equipment is healthy.'},
+ {id:'f_e',g:SYS,label:'CT measurement error',min:0,max:30,step:1,val:2,unit:'%',help:'How much the outgoing CT under-reads. A few percent normally, far more if it saturates.'},
+ {id:'f_pu',g:SET,label:'Minimum pickup',min:0.1,max:0.5,step:0.05,val:0.2,unit:'pu',help:'Smallest differential current that can cause a trip. Lower is more sensitive.'},
+ {id:'f_sl',g:SET,label:'Slope',min:10,max:50,step:5,val:25,unit:'%',help:'Differential current demanded as a percentage of the restraint current. Higher is more secure.'}
+]);
+mk('r_c',[
+ {id:'r_a',g:SYS,label:'Current lags voltage by',min:0,max:359,step:1,val:25,unit:'°',help:'Load lags a little (about 25°). A fault in front lags a lot (60 to 80°). A fault behind appears about 180° further round.'},
+ {id:'r_i',g:SYS,label:'Current magnitude',min:0,max:3000,step:50,val:250,unit:'A',help:'Size of the current, as an overcurrent relay would see it.'},
+ {id:'r_m',g:SET,label:'Characteristic angle',min:0,max:90,step:5,val:60,unit:'°',help:'The lag angle at which the relay is most sensitive. Set to match the expected fault angle. Also called maximum torque angle.'},
+ {id:'r_pu',g:SET,label:'Overcurrent pickup',min:100,max:1500,step:50,val:400,unit:'A',help:'The directional element only gives permission. The current must still exceed this pickup to trip.'}
+]);
+mk('p_c',[
+ {id:'p_con',g:SYS,label:'Cable connection',val:'abc',opts:[['abc','Correct: A, B, C'],['bac','A and B swapped'],['acb','B and C swapped'],['cba','A and C swapped']],help:'Which phase arrives on relay terminals L1, L2, L3.'},
+ {id:'p_vc',g:SYS,label:'Phase C voltage',min:0,max:100,step:5,val:100,unit:'%',help:'100% is healthy. 0% is a lost phase, for example a blown fuse.'},
+ {id:'p_seq',g:SET,label:'Expected rotation',val:'abc',opts:[['abc','A-B-C'],['acb','A-C-B']],help:'The phase order the equipment was built for. The relay compares the measured order with this.'},
+ {id:'p_ub',g:SET,label:'Unbalance pickup',min:5,max:30,step:1,val:10,unit:'%',help:'How much backward-rotating voltage is tolerated, as a percentage of the forward part. Catches a lost or weak phase.'},
+ {id:'p_t',g:SET,label:'Time delay',min:0.1,max:2,step:0.1,val:0.5,unit:'s',help:'A short wait so that switching transients do not cause an operation.'}
+]);
+
+/* ---------- overcurrent ---------- */
+const CV={si:[0.14,0.02],vi:[13.5,1],ei:[80,2]};
+function tOC(I){ if(I>=S.oc_50) return 0.03; const M=I/S.oc_pu; if(M<=1) return Infinity; const c=CV[S.oc_cv]; return Math.max(0.03,S.oc_tms*c[0]/(Math.pow(M,c[1])-1)); }
+function drawOC(){
+  const l=52,r=14,t=12,b=40,W=560,H=350,pw=W-l-r,ph=H-t-b, lx=Math.log10(20000)-2;
+  const x=I=>l+(Math.log10(Math.max(I,100))-2)/lx*pw, y=s=>t+(2-Math.log10(Math.min(Math.max(s,0.01),100)))/4*ph;
+  let h='';
+  [100,200,500,1000,2000,5000,10000,20000].forEach(I=>{h+=L(x(I),t,x(I),t+ph,'grid')+T(x(I),H-22,I>=1000?I/1000+'k':I,'','middle')});
+  [0.01,0.1,1,10,100].forEach(s=>{h+=L(l,y(s),l+pw,y(s),'grid')+T(l-6,y(s)+4,s,'','end')});
+  h+=T(l+pw/2,H-4,'Current (A)','','middle')+`<text transform="translate(13 ${t+ph/2}) rotate(-90)" text-anchor="middle">Trip time (s)</text>`;
+  h+=`<rect x="${l}" y="${t}" width="${pw}" height="${ph}" class="ax"/>`;
+  let p=''; const end=Math.min(S.oc_50,20000);
+  for(let I=S.oc_pu*1.015;I<end;I*=1.03) p+=`${p?'L':'M'}${x(I).toFixed(1)} ${y(tOC(I)).toFixed(1)}`;
+  p+=`${p?'L':'M'}${x(end)} ${y(tOC(end*0.9999))}`;
+  if(S.oc_50<20000) p+=`L${x(S.oc_50)} ${y(0.03)}L${x(20000)} ${y(0.03)}`;
+  h+=`<path d="${p}" class="curve"/>`;
+  h+=L(x(S.oc_pu),t,x(S.oc_pu),t+ph,'dash')+T(x(S.oc_pu)+4,t+14,'51 pickup','t-set');
+  if(S.oc_50<20000) h+=T(Math.min(x(S.oc_50)+4,W-110),y(0.03)-8,'50 instantaneous','t-set');
+  const I=S.oc_i,tt=tOC(I);
+  h+=L(x(I),t,x(I),t+ph,isFinite(tt)?'tripline':'okline');
+  if(isFinite(tt)) h+=`<circle cx="${x(I)}" cy="${y(tt)}" r="6" class="dot"/>`+L(l,y(tt),x(I),y(tt),'dash');
+  $('oc_s').innerHTML=h;
+  const M=(I/S.oc_pu).toFixed(2);
+  read('oc_r',[['Current',I+' A'],['Multiple of pickup',M+' ×'],['Trip time',ft(tt)]]);
+  if(!isFinite(tt)) face('oc_f','ok','Relay is quiet',`${I} A is below the 51 pickup of ${S.oc_pu} A. The relay treats this as normal load and does nothing.`);
+  else if(I>=S.oc_50) face('oc_f','trip','50 element: instantaneous trip',`${I} A is above the instantaneous pickup of ${S.oc_50} A. The fault must be close, so the breaker is tripped in about 30 ms with no waiting.`);
+  else face('oc_f','warn',`51 element is timing: trip in ${ft(tt)}`,`${I} A is ${M} times pickup. The relay has started its timer. If the current is still there after ${ft(tt)} it trips the breaker. If a downstream device clears the fault first, it resets.`);
+}
+/* ---------- voltage ---------- */
+function drawV(){
+  const l=14,W=560,pw=W-2*l,x=v=>l+v/140*pw,y=50,hh=30,v=S.v_v; let h='';
+  h+=`<rect x="${x(0)}" y="${y}" width="${x(S.v_27)-x(0)}" height="${hh}" class="f-warn"/><rect x="${x(S.v_27)}" y="${y}" width="${x(S.v_59)-x(S.v_27)}" height="${hh}" class="f-ok"/><rect x="${x(S.v_59)}" y="${y}" width="${x(140)-x(S.v_59)}" height="${hh}" class="f-trip"/><rect x="${l}" y="${y}" width="${pw}" height="${hh}" class="ax"/>`;
+  for(let k=0;k<=140;k+=20) h+=L(x(k),y+hh,x(k),y+hh+5,'ax')+T(x(k),y+hh+19,k+'%','','middle');
+  h+=T(x(S.v_27)-4,y+hh+38,'27 picks up below '+S.v_27+'%','t-set','end')+T(x(S.v_59)+4,y+hh+38,'59 above '+S.v_59+'%','t-set');
+  h+=L(x(S.v_27),y-4,x(S.v_27),y+hh+26,'curve')+L(x(S.v_59),y-4,x(S.v_59),y+hh+26,'curve');
+  h+=`<path d="M${x(v)} ${y-2}l-7 -12h14z" class="solid"/>`+L(x(v),y,x(v),y+hh,'ax')+T(Math.min(Math.max(x(v),40),W-40),y-20,v+'% of nominal','t-fg','middle');
+  $('v_s').innerHTML=h;
+  const pv=Math.min(Math.max(v,25),100);
+  read('v_r',[['Voltage',v+' %'],['Healthy window',S.v_27+' to '+S.v_59+' %'],['51V pickup at this voltage',pv+' % of its setting']]);
+  if(v<S.v_27) face('v_f','warn',`27 undervoltage is timing: operates in ${S.v_27t} s`,(v===0?'The supply has gone completely. ':'')+`Voltage is below the ${S.v_27}% pickup. If it has not recovered after ${S.v_27t} s the relay operates, typically opening the incomer and starting the transfer to the standby source.`);
+  else if(v>S.v_59) face('v_f','trip',`59 overvoltage is timing: operates in ${S.v_59t} s`,`Voltage is above the ${S.v_59}% pickup. If it stays there for ${S.v_59t} s the relay trips to protect insulation and electronic loads.`);
+  else face('v_f','ok','Voltage is inside the healthy window',`${v}% sits between the undervoltage setting (${S.v_27}%) and the overvoltage setting (${S.v_59}%). Both elements are reset.`);
+}
+/* ---------- distance ---------- */
+function drawD(){
+  const s=46,ox=150,oy=326,ZL=4,an=rad(70),c=Math.cos(an),sn=Math.sin(an);
+  const X=R=>ox+R*s,Y=x=>oy-x*s; let h='';
+  for(let k=-2;k<=6;k++){ h+=L(X(k),Y(-1),X(k),Y(6.8),'grid'); if(k>=-1) h+=L(X(-2.6),Y(k),X(6),Y(k),'grid'); if(k&&k<6) h+=T(X(k),oy+15,k,'','middle'); if(k>0) h+=T(ox-6,Y(k)+4,k,'','end'); }
+  h+=L(X(-2.6),oy,X(6),oy,'ax')+L(ox,Y(-1),ox,Y(6.8),'ax')+T(X(6)-2,oy+30,'R, resistance (Ω)','','end')+T(ox+6,Y(6.8)+10,'X, reactance (Ω)');
+  const circ=(pct,k)=>{const z=ZL*pct/100; return `<circle cx="${X(z/2*c)}" cy="${Y(z/2*sn)}" r="${z/2*s}" class="${k}"/>`};
+  h+=circ(S.d_z2,'f-none')+circ(S.d_z1,'f-set');
+  h+=T(X(ZL*S.d_z2/100*c)+8,Y(ZL*S.d_z2/100*sn)+2,'Zone 2','t-set')+T(X(ZL*S.d_z1/200*c)-58,Y(ZL*S.d_z1/200*sn),'Zone 1','t-set');
+  h+=L(ox,oy,X(ZL*c),Y(ZL*sn),'acc')+L(X(ZL*c),Y(ZL*sn),X(6*c),Y(6*sn),'dash');
+  h+=`<circle cx="${X(ZL*c)}" cy="${Y(ZL*sn)}" r="4" class="f-acc"/>`+T(X(ZL*c)+9,Y(ZL*sn)+4,'far-end bus (100%)','t-acc');
+  h+=T(ox-8,oy+30,'relay','t-fg','end');
+  const d=S.d_d/100*ZL, R=d*c+S.d_rf, Xx=d*sn;
+  const inz=p=>{const z=ZL*p/100; return Math.hypot(R-z/2*c,Xx-z/2*sn)<z/2+1e-9};
+  const z1=inz(S.d_z1), z2=inz(S.d_z2);
+  if(S.d_rf>0) h+=L(X(d*c),Y(Xx),X(R),Y(Xx),'tripline')+T(X(R)+9,Y(Xx)+4,'shifted by fault resistance','t-trip');
+  h+=`<circle cx="${X(R)}" cy="${Y(Xx)}" r="7" class="dot"/>`;
+  $('d_s').innerHTML=h;
+  const zm=Math.hypot(R,Xx);
+  read('d_r',[['Measured Z',zm.toFixed(2)+' Ω'],['Angle',(zm?Math.atan2(Xx,R)*180/Math.PI:0).toFixed(0)+'°'],['Line impedance','4.00 Ω at 70°'],['Zone 1 limit',(ZL*S.d_z1/100).toFixed(2)+' Ω']]);
+  const on=S.d_d<=100;
+  if(z1) face('d_f','trip','Zone 1: instantaneous trip', on?`The relay measures ${zm.toFixed(2)} Ω, inside zone 1. The fault is certainly on its own line, so it trips with no delay.`:`The fault is beyond the far bus, yet it falls inside zone 1. The relay has over-reached and tripped instantly for a fault on someone else's section. Zone 1 is set too long.`);
+  else if(z2) face('d_f','warn',`Zone 2: trip after ${S.d_t2} s`, on?(S.d_rf>0&&S.d_d<=S.d_z1?`The fault is on the line, but fault resistance has pushed the measured impedance out of zone 1. Zone 2 still catches it, ${S.d_t2} s later.`:`The fault is near the far end, beyond zone 1. Zone 2 covers this last stretch and trips after its ${S.d_t2} s delay.`):`The fault is on the next section. Zone 2 sees it and waits ${S.d_t2} s. If the next section's own relay clears it in that time, this relay resets. If not, it trips as backup.`);
+  else face('d_f','ok','Outside reach: relay restrains', on?`The fault is on the line, but fault resistance has moved the measured impedance outside both zones. The relay has under-reached and another protection would have to clear this.`:`The measured impedance is larger than either zone's reach. The fault is too far away to be this relay's responsibility.`);
+}
+/* ---------- differential ---------- */
+function drawF(){
+  const i1=S.f_t+S.f_f, i2=S.f_t*(1-S.f_e/100), op=Math.abs(i1-i2), rs=(i1+i2)/2, sl=S.f_sl/100, th=Math.max(S.f_pu,sl*rs), trip=op>th+1e-9;
+  let z=`<path class="wire" d="M20 50H540"/><rect x="200" y="22" width="160" height="56" class="box"/>`+T(280,46,'Protected zone','t-fg','middle')+T(280,62,'transformer, bus, generator','','middle');
+  z+=`<circle cx="130" cy="50" r="11" class="box"/><circle cx="430" cy="50" r="11" class="box"/>`+T(130,82,'CT 1','','middle')+T(430,82,'CT 2','','middle');
+  z+=`<path d="M40 38h44l-8 -6m8 6l-8 6" class="acc"/><path d="M470 38h44l-8 -6m8 6l-8 6" class="acc"/>`+T(62,26,'in '+i1.toFixed(2)+' pu','t-acc','middle')+T(492,26,'out '+i2.toFixed(2)+' pu','t-acc','middle');
+  z+=`<path d="M130 61V104H430V61" class="dash"/>`+T(280,116,'relay sees the difference: '+op.toFixed(2)+' pu',trip?'t-trip':'t-ok','middle');
+  if(S.f_f>0) z+=`<path d="M276 36l14 12h-10l10 14" class="tripline"/>`;
+  $('f_z').innerHTML=z;
+  const l=52,t=12,W=560,H=330,pw=W-l-14,ph=H-t-40,mx=12,x=v=>l+Math.min(v,mx)/mx*pw,y=v=>t+ph-Math.min(v,mx)/mx*ph; let h='';
+  const k=S.f_pu/sl;
+  h+=`<rect x="${l}" y="${t}" width="${pw}" height="${ph}" class="f-ok"/><path d="M${x(0)} ${y(S.f_pu)}L${x(k)} ${y(S.f_pu)}L${x(mx)} ${y(sl*mx)}L${x(mx)} ${y(mx)}L${x(0)} ${y(mx)}Z" class="f-trip"/>`;
+  for(let v=0;v<=mx;v+=2) h+=L(x(v),t,x(v),t+ph,'grid')+L(l,y(v),l+pw,y(v),'grid')+T(x(v),H-22,v,'','middle')+T(l-6,y(v)+4,v,'','end');
+  h+=`<rect x="${l}" y="${t}" width="${pw}" height="${ph}" class="ax"/>`+T(l+pw/2,H-4,'Restraint current (pu): how much is flowing through','','middle')+`<text transform="translate(13 ${t+ph/2}) rotate(-90)" text-anchor="middle">Differential current (pu)</text>`;
+  h+=`<path d="M${x(0)} ${y(S.f_pu)}L${x(k)} ${y(S.f_pu)}L${x(mx)} ${y(sl*mx)}" class="curve"/>`;
+  h+=T(l+14,t+22,'TRIP','t-trip')+T(l+pw-10,t+ph-10,'RESTRAIN','t-ok','end')+T(x(mx)-8,y(sl*mx)-8,'slope '+S.f_sl+'%','t-set','end');
+  h+=`<circle cx="${x(rs)}" cy="${y(op)}" r="7" class="${trip?'dot':'dotok'}"/>`;
+  $('f_s').innerHTML=h;
+  read('f_r',[['Differential',op.toFixed(2)+' pu'],['Restraint',rs.toFixed(2)+' pu'],['Needed to trip',th.toFixed(2)+' pu']]);
+  if(trip) face('f_face','trip', S.f_f>0?'Internal fault: instantaneous trip':'False trip on a healthy zone', S.f_f>0?`${op.toFixed(2)} pu more goes in than comes out, above the ${th.toFixed(2)} pu the relay demands at this level of through current. The breakers on both sides are tripped at once.`:`There is no fault inside the zone. CT error alone has produced ${op.toFixed(2)} pu of apparent difference, more than the ${th.toFixed(2)} pu threshold. The settings are too sensitive for this CT performance.`);
+  else face('f_face','ok', S.f_f>0?'Internal fault not detected':'Balanced: relay restrains', S.f_f>0?`A ${S.f_f} pu fault exists inside the zone, but the differential current (${op.toFixed(2)} pu) is below the ${th.toFixed(2)} pu threshold. The settings are not sensitive enough to see it.`:`Current in and current out agree to within ${op.toFixed(2)} pu. The relay needs ${th.toFixed(2)} pu to operate, so it stays quiet${S.f_t>3?' even though a heavy fault current is passing through to a fault outside the zone':''}.`);
+}
+/* ---------- directional ---------- */
+function drawR(){
+  const cx=200,cy=190,R=150,pt=(a,r)=>[cx+r*Math.cos(rad(a)),cy-r*Math.sin(rad(a))], m=-S.r_m;
+  const a=pt(m+90,R),b=pt(m-90,R); let h='';
+  h+=`<circle cx="${cx}" cy="${cy}" r="${R}" class="f-trip"/><path d="M${cx} ${cy}L${a[0]} ${a[1]}A${R} ${R} 0 0 1 ${b[0]} ${b[1]}Z" class="f-ok"/><circle cx="${cx}" cy="${cy}" r="${R}" class="ax"/>`;
+  h+=L(a[0],a[1],b[0],b[1],'ax');
+  const mp=pt(m,R),fp=pt(m,R*0.8),rp=pt(m+180,R*0.6);
+  h+=L(cx,cy,mp[0],mp[1],'dash')+T(pt(m,R+14)[0],pt(m,R+14)[1]+4,'characteristic angle','t-set',Math.cos(rad(m))>0.3?'start':'middle');
+  h+=T(fp[0]-40,fp[1]+24,'FORWARD','t-ok','middle')+T(rp[0],rp[1],'REVERSE','t-trip','middle');
+  const arrow=(ang,len,k,lab,tk)=>{const e=pt(ang,len),p1=pt(ang+155,12),p2=pt(ang-155,12),lp=pt(ang,len+16);
+    return L(cx,cy,e[0],e[1],k)+`<path d="M${e[0]} ${e[1]}l${p1[0]-cx} ${p1[1]-cy}M${e[0]} ${e[1]}l${p2[0]-cx} ${p2[1]-cy}" class="${k}"/>`+T(lp[0],lp[1]+4,lab,tk,'middle')};
+  h+=arrow(0,R*0.95,'ax','V','t-fg');
+  const fwd=Math.cos(rad(S.r_a-S.r_m))>0, big=S.r_i>S.r_pu;
+  h+=arrow(-S.r_a,30+S.r_i/3000*100,'acc','I','t-acc');
+  $('r_s').innerHTML=h;
+  let off=((S.r_a-S.r_m+540)%360)-180;
+  read('r_r',[['Direction',fwd?'forward':'reverse'],['Angle from characteristic',Math.abs(off).toFixed(0)+'°'],['Current',S.r_i+' A'],['Pickup',S.r_pu+' A']]);
+  if(fwd&&big) face('r_f','trip','Forward fault: relay trips',`The current is ${Math.abs(off).toFixed(0)}° from the characteristic angle, inside the forward half, and ${S.r_i} A exceeds the ${S.r_pu} A pickup. Direction and magnitude both agree, so the overcurrent element is allowed to time out and trip.`);
+  else if(big) face('r_f','ok','Reverse fault: relay blocks',`${S.r_i} A is well above pickup, and a plain overcurrent relay would trip. The angle shows the current is flowing towards a fault behind the relay, so the directional element refuses permission. Another relay is responsible for that fault.`);
+  else face('r_f','ok','Relay is quiet',`The current is in the ${fwd?'forward':'reverse'} direction but at ${S.r_i} A it is below the ${S.r_pu} A pickup. This is load, not a fault.`);
+}
+/* ---------- phase sequence (47) ---------- */
+function pcalc(){ const PH={a:0,b:-120,c:120}, T=[0,1,2].map(k=>{ const ph=S.p_con[k]; return {ph,A:ph==='c'?S.p_vc/100:1,f:rad(PH[ph])}; });
+  const sum=s=>{ let re=0,im=0; T.forEach((x,k)=>{ const an=x.f+s*k*2*Math.PI/3; re+=x.A*Math.cos(an); im+=x.A*Math.sin(an); }); return Math.hypot(re,im)/3; };
+  let v1=sum(1),v2=sum(-1); if(S.p_seq==='acb') [v1,v2]=[v2,v1];
+  return {T,v1,v2,rev:v2>v1+1e-9,ub:v1>0.01?v2/v1*100:0}; }
+function drawP(){
+  const c=pcalc(),w=532; let h='';
+  h+=T(14,14,'Forward-rotating part: '+(c.v1*100).toFixed(0)+'%','t-fg')+`<rect x="14" y="20" width="${c.v1*w}" height="14" class="f-ok"/><rect x="14" y="20" width="${w}" height="14" class="ax"/>`;
+  h+=T(14,58,'Backward-rotating part: '+(c.v2*100).toFixed(0)+'%','t-fg')+`<rect x="14" y="64" width="${c.v2*w}" height="14" class="f-trip"/><rect x="14" y="64" width="${w}" height="14" class="ax"/>`;
+  if(!c.rev){ const x=14+S.p_ub/100*c.v1*w; h+=L(x,60,x,84,'curve')+T(x+5,98,'unbalance pickup','t-set'); }
+  $('p_s').innerHTML=h;
+  read('p_r',[['Rotation',c.rev?'reversed':'as expected'],['Unbalance',c.rev?'n/a':c.ub.toFixed(0)+' %'],['Pickup',S.p_ub+' %']]);
+  if(c.rev) face('p_f','trip',`Phase reversal: relay operates in ${ft(S.p_t)}`,'The phases arrive at the terminals in the opposite order to the one expected. Every voltage is healthy in size, so no other relay notices. A motor would run backwards, so the relay opens or blocks its contactor.');
+  else if(c.ub>S.p_ub) face('p_f','warn',`${S.p_vc<15?'Phase lost':'Voltage unbalance'}: relay operates in ${ft(S.p_t)}`,`The order is correct, but phase C is at ${S.p_vc}%. The backward-rotating part is ${c.ub.toFixed(0)}% of the forward part, above the ${S.p_ub}% pickup. A motor would overheat on this supply.`);
+  else face('p_f','ok','Sequence correct and balanced','The phases arrive in the expected order and the three voltages are balanced. The relay allows the equipment to run.');
+}
+
+function update(){ outs(); drawOC(); drawV(); drawD(); drawF(); drawR(); drawP(); drawC(); drawU(); scenes(); }
+function reclose(id){ const b=B[id.split('_')[0]]; if(b&&b.open){ b.open=false; b.el=0; if(b.rs)b.rs(); } }
+document.addEventListener('input',e=>{ const d=D[e.target.id]; if(!d) return; S[d.id]=d.opts?e.target.value:+e.target.value; reclose(d.id); update(); });
+document.addEventListener('click',e=>{
+  const rs=e.target.closest('[data-reset]'); if(rs){ for(const id in D){ const d=D[id]; if(d.host===rs.dataset.reset){ S[id]=d.val; $(id).value=d.val; reclose(id); } } update(); return; }
+  const c=e.target.closest('[data-close]'); if(c){ const b=B[c.dataset.close]; b.open=false; b.el=0; if(b.rs)b.rs(); return; }
+  const p=e.target.closest('.preset'); if(p){ const o=JSON.parse(p.dataset.p); for(const k in o){ S[k]=o[k]; $(k).value=o[k]; reclose(k); } update(); return; }
+  const g=e.target.closest('[data-go],[data-t]'); if(g) show(g.dataset.go||g.dataset.t,true);
+});
+function show(id,push){
+  if(!$(id)||!$(id).classList.contains('tab')) id='basics';
+  document.querySelectorAll('section.tab').forEach(s=>s.hidden=s.id!==id); document.body.dataset.tab=id;
+  document.querySelectorAll('#nav button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===id));
+  if(push){ try{history.replaceState(null,'','#'+id)}catch(_){} window.scrollTo(0,0); }
+}
+/* ---------- live scenes: animated current, relay timer, breaker ---------- */
+const B={}, RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const src=x=>`<circle cx="${x}" cy="55" r="13" class="box"/>`+T(x,60,'~','t-fg','middle');
+const brk=x=>`<rect x="${x-9}" y="46" width="18" height="18" class="brk"/>`+T(x,80,'closed','wc','middle')+T(x,80,'OPEN','wo t-trip','middle');
+const rly=(x,y,n)=>`<rect x="${x-26}" y="${y}" width="52" height="20" rx="3" class="box rl"/>`+T(x,y+14,n,'t-fg','middle');
+const ct=x=>`<circle cx="${x}" cy="55" r="8" class="f-none"/>`;
+const flow=(d,v,hot)=>v>0?`<path d="${d}" class="flow${hot?' hot':''}" data-v="${v}"/>`:'';
+const bolt=(x,y)=>`<path d="M${x-3} ${y-16}l8 12h-9l7 14" class="tripline"/>`;
+const wave=(amp,ph,t)=>{let p='';for(let x=10;x<=550;x+=6)p+=(p?'L':'M')+x+' '+(75-amp*Math.sin(2*Math.PI*(x/220-t*1.1)+ph)).toFixed(1);return p};
+function dz(){ const c=Math.cos(rad(70)),s=Math.sin(rad(70)),d=S.d_d/25,R=d*c+S.d_rf,X=d*s,i=p=>{const z=p/25;return Math.hypot(R-z/2*c,X-z/2*s)<z/2+1e-9}; return i(S.d_z1)?1:i(S.d_z2)?2:0; }
+const dx=p=>80+p/150*450;
+
+B.oc={face:'oc_f',h:100,
+ ev(){ const t=tOC(S.oc_i); return isFinite(t)?{d:t,n:S.oc_i>=S.oc_50?'50 instantaneous':'51 time overcurrent'}:null; },
+ sc(){ const I=S.oc_i,hot=I>S.oc_pu;
+  return `<path class="wire" d="M33 55H500"/><path class="dash" d="M120 47V20H184M210 30V46"/>`+src(20)+ct(120)+T(120,80,'CT','','middle')+brk(210)+rly(210,10,'50/51')
+   +`<rect x="500" y="40" width="48" height="30" class="box"/>`+T(524,60,'Load','t-fg','middle')+flow('M40 55H496',40+I/12000*380,hot)
+   +(I>=1000?bolt(390,55)+T(390,92,'fault','t-trip','middle'):'')+T(310,36,I+' A',hot?'t-trip':'t-acc','middle'); } };
+B.v={face:'v_f',h:150,
+ ev(){ return S.v_v<S.v_27?{d:S.v_27t,n:'27 undervoltage'}:S.v_v>S.v_59?{d:S.v_59t,n:'59 overvoltage'}:null; },
+ sc(){ const a=S.v_59*0.4,b=S.v_27*0.4;
+  return L(10,75,550,75,'grid')+L(10,75-a,550,75-a,'w59')+L(10,75+a,550,75+a,'w59')+L(10,75-b,550,75-b,'w27')+L(10,75+b,550,75+b,'w27')
+   +T(552,75-a-4,'59 level','t-trip','end')+T(552,75-b+14,'27 level','','end')+T(12,14,'Voltage waveform at the bus','t-fg')+`<path id="v_w" class="acc"/>`; },
+ fr(t){ $('v_w').setAttribute('d',wave(S.v_v*0.4,0,t)); } };
+B.d={face:'d_f',h:132,
+ ev(){ const z=dz(); return z===1?{d:0.03,n:'Zone 1'}:z===2?{d:S.d_t2,n:'Zone 2'}:null; },
+ sc(){ return `<path class="wire" d="M33 55H${dx(100)}"/><path class="dash" d="M${dx(100)} 55H${dx(150)}M60 30V46"/><path class="bus" d="M${dx(100)} 38V72"/>`
+   +T(dx(100)+6,34,'far bus')+T(dx(150),46,'next section','','end')+src(20)+brk(60)+rly(60,10,'21')
+   +`<rect x="${dx(0)}" y="84" width="${dx(S.d_z1)-dx(0)}" height="9" class="f-set"/><rect x="${dx(0)}" y="100" width="${dx(S.d_z2)-dx(0)}" height="9" class="f-none"/>`
+   +T(dx(0)-5,93,'Z1','t-set','end')+T(dx(0)-5,109,'Z2','t-set','end')+flow(`M40 55H${dx(S.d_d)}`,300,true)+bolt(dx(S.d_d),55)
+   +T(552,128,'Drag along the line to move the fault','','end'); } };
+B.f={face:'f_face',h:120,
+ ev(){ const i1=S.f_t+S.f_f,i2=S.f_t*(1-S.f_e/100),op=Math.abs(i1-i2),th=Math.max(S.f_pu,S.f_sl/100*(i1+i2)/2); return op>th+1e-9?{d:0.03,n:'87 differential'}:null; },
+ sc(){ const i1=S.f_t+S.f_f;
+  return `<path class="wire" d="M33 55H506"/><path class="dash" d="M150 47V12H254M306 12H410V47"/>`+src(20)+brk(80)+ct(150)+ct(410)+brk(470)+rly(280,2,'87')
+   +`<rect x="220" y="30" width="120" height="50" class="box"/><rect x="506" y="40" width="46" height="30" class="box"/>`+T(529,60,'Load','t-fg','middle')+T(280,45,'Protected zone','t-fg','middle')
+   +T(158,38,'in '+i1.toFixed(1),'t-acc')+T(402,38,'out '+S.f_t.toFixed(1),'t-acc','end')
+   +flow('M40 55H218',i1?40+i1*35:0,S.f_f>0)+flow('M342 55H500',S.f_t?40+S.f_t*35:0,false)
+   +(S.f_f>0?flow('M300 82V114',40+S.f_f*35,true)+bolt(280,66)+T(310,104,'escaping through the fault','t-trip'):''); } };
+B.r={face:'r_f',h:104,
+ ev(){ return Math.cos(rad(S.r_a-S.r_m))>0&&S.r_i>S.r_pu?{d:0.3,n:'67 directional overcurrent'}:null; },
+ sc(){ const fwd=Math.cos(rad(S.r_a-S.r_m))>0,big=S.r_i>S.r_pu,v=60+S.r_i/10; let h=`<path class="wire" d="M33 55H527"/><path class="dash" d="M130 30V46"/><path class="bus" d="M330 36V74"/><rect x="441" y="46" width="18" height="18" class="solid"/>`
+   +src(20)+src(540)+T(8,96,'Source A')+T(552,96,'Source B','','end')+T(330,96,'bus','','middle')+brk(130)+rly(130,10,'67')+T(164,24,'trips only for faults this way →','t-set');
+  if(big){ const x=fwd?235:78; h+=flow(`M40 55H${x}`,v,true)+flow(`M520 55H${x}`,v,true)+bolt(x,55); }
+  else h+=flow(fwd?'M40 55H520':'M520 55H40',v,false);
+  return h; } };
+B.p={face:'p_f',h:160,
+ ev(){ const c=pcalc(); return c.rev?{d:S.p_t,n:'47 phase reversal'}:c.ub>S.p_ub?{d:S.p_t,n:'47 voltage unbalance'}:null; },
+ sc(){ const c=pcalc(),cl={a:'acc',b:'curve',c:'okline'},tc={a:'t-acc',b:'t-set',c:'t-ok'}; let h=`<circle cx="95" cy="92" r="62" class="grid"/><circle cx="492" cy="92" r="44" class="box"/><path id="p_m" class="wire"/>`+T(95,14,'Voltages at the relay','t-fg','middle')+T(492,14,'Motor','t-fg','middle')+`<text id="p_d" x="492" y="156" text-anchor="middle"></text>`;
+  c.T.forEach((x,k)=>{ h+=`<path id="p_w${k}" class="${cl[x.ph]}"/><line id="p_v${k}" x1="95" y1="92" class="${cl[x.ph]}"/><text id="p_l${k}" class="${tc[x.ph]}" text-anchor="middle"></text>`+T(190+k*82,14,'L'+(k+1)+' = '+x.ph.toUpperCase(),tc[x.ph]); });
+  return h+T(305,156,'time →','','middle'); },
+ fr(t){ const c=pcalc(),th=t*1.6,kx=2*Math.PI*1.5/240;
+  c.T.forEach((x,k)=>{ const a=th+x.f,r=62*x.A,rl=Math.max(r,18)+11,v=$('p_v'+k),l=$('p_l'+k);
+   v.setAttribute('x2',95+r*Math.cos(a)); v.setAttribute('y2',92-r*Math.sin(a)); l.setAttribute('x',95+rl*Math.cos(a)); l.setAttribute('y',96-rl*Math.sin(a)); l.textContent='L'+(k+1);
+   let p=''; for(let X=185;X<=425;X+=5) p+=(p?'L':'M')+X+' '+(92-x.A*36*Math.sin(kx*(X-185)+x.f+th)).toFixed(1); $('p_w'+k).setAttribute('d',p); });
+  const dt=t-(this.lt===undefined?t:this.lt); this.lt=t; this.an=(this.an||0)+(B.p.open?0:dt*4*(c.rev?-1:1)*Math.abs(c.v1-c.v2));
+  let d=''; for(let i=0;i<3;i++){ const a=this.an+i*2*Math.PI/3; d+=`M492 92L${(492+36*Math.cos(a)).toFixed(1)} ${(92-36*Math.sin(a)).toFixed(1)}`; } $('p_m').setAttribute('d',d);
+  const e=$('p_d'); e.textContent=B.p.open?'stopped by the relay':c.rev?'running BACKWARDS':'running forward'; e.setAttribute('class',B.p.open||c.rev?'t-trip':'t-ok'); } };
+
+/* ---------- undercurrent ---------- */
+mk('u_c',[
+ {id:'u_i',g:SYS,label:'Motor current',min:0,max:120,step:1,val:85,unit:'%',help:'Current drawn while running, as a percentage of full load. It follows the mechanical load on the shaft.'},
+ {id:'u_st',g:SYS,label:'Motor',val:'run',opts:[['run','Running'],['off','Switched off on purpose']],help:'When the motor is off the current is zero, whatever the slider says.'},
+ {id:'u_pu',g:SET,label:'37 pickup',min:20,max:90,step:1,val:50,unit:'%',help:'The relay starts timing when current falls below this. Set above the no-load current and below the lightest normal load.'},
+ {id:'u_t',g:SET,label:'Time delay',min:0.5,max:10,step:0.5,val:3,unit:'s',help:'How long the current must stay low before the relay operates. Rides through brief drops in load.'},
+ {id:'u_bl',g:SET,label:'Block when motor is off',val:'on',opts:[['on','On'],['off','Off']],help:'Makes the relay active only while the motor is meant to be running, so a normal stop is not seen as undercurrent.'}
+]);
+const ucur=()=>S.u_st==='off'?0:S.u_i;
+const uev=()=>(S.u_st==='off'?S.u_bl==='off':S.u_i<S.u_pu)?{d:S.u_t,n:'37 undercurrent'}:null;
+function drawU(){
+  const l=14,W=560,pw=W-2*l,x=v=>l+v/120*pw,y=50,hh=30,v=ucur(),off=S.u_st==='off'; let h='';
+  h+=`<rect x="${x(0)}" y="${y}" width="${x(S.u_pu)-x(0)}" height="${hh}" class="f-warn"/><rect x="${x(S.u_pu)}" y="${y}" width="${x(120)-x(S.u_pu)}" height="${hh}" class="f-ok"/><rect x="${l}" y="${y}" width="${pw}" height="${hh}" class="ax"/>`;
+  for(let k=0;k<=120;k+=20) h+=L(x(k),y+hh,x(k),y+hh+5,'ax')+T(x(k),y+hh+19,k+'%','','middle');
+  h+=L(x(S.u_pu),y-4,x(S.u_pu),y+hh+26,'curve')+T(x(S.u_pu)+5,y+hh+38,'37 picks up below '+S.u_pu+'%','t-set');
+  h+=`<path d="M${x(v)} ${y-2}l-7 -12h14z" class="solid"/>`+L(x(v),y,x(v),y+hh,'ax')+T(Math.min(Math.max(x(v),46),W-46),y-20,v+'% of full load','t-fg','middle');
+  $('u_s').innerHTML=h;
+  read('u_r',[['Current',v+' %'],['Pickup',S.u_pu+' %'],['Relay',off&&S.u_bl==='on'?'blocked':'active']]);
+  if(off&&S.u_bl==='on') face('u_f','ok','Relay blocked: motor is off','The current is zero because the motor was stopped on purpose. Blocking keeps the undercurrent element out of service until the motor runs again.');
+  else if(off) face('u_f','trip',`False operation in ${S.u_t} s`,'The motor was stopped on purpose, but with blocking off the relay cannot tell that from a lost load. It operates and raises a trip or lockout for no reason.');
+  else if(v<S.u_pu) face('u_f','warn',`37 undercurrent is timing: trips in ${S.u_t} s`,`The motor is running but drawing only ${v}%, below the ${S.u_pu}% pickup. The driven load has gone, for example a dry pump. If the current stays low for ${S.u_t} s the relay stops the motor.`);
+  else face('u_f','ok','Load is normal',`${v}% is above the ${S.u_pu}% pickup. The motor is doing its work and the relay is reset.`);
+}
+B.u={face:'u_f',h:100, ev:uev,
+ sc(){ const v=ucur(),low=S.u_st==='run'&&v<S.u_pu;
+  return `<path class="wire" d="M33 55H462M498 55H516"/><path class="dash" d="M190 30V47M164 20H110V46"/>`+src(20)+brk(110)+ct(190)+rly(190,10,'37')
+   +`<circle cx="480" cy="55" r="18" class="box"/><rect x="516" y="41" width="38" height="28" class="box"/>`+T(480,60,'M','t-fg','middle')+T(535,60,'Pump','t-fg','middle')
+   +flow('M40 55H458',v?30+v*2.5:0,false)+T(320,38,S.u_st==='off'?'motor off':v+' % of full load',low?'t-trip':'t-acc','middle'); } };
+
+/* ---------- coordination: three relays in series ---------- */
+mk('c_c',[
+ {id:'c_i',g:SYS,label:'Fault current',min:0,max:8000,step:100,val:3000,unit:'A',help:'Every relay between the source and the fault measures this same current.'},
+ {id:'c_loc',g:SYS,label:'Fault location',val:'1',opts:[['1','On the feeder, after R1'],['2','Between R2 and R1'],['3','Between R3 and R2']],help:'Only relays on the source side of the fault see it.'},
+ {id:'c_fail',g:SYS,label:'Feeder breaker (R1)',val:'no',opts:[['no','Healthy'],['yes','Fails to open']],help:'A stuck breaker is what backup protection is for.'},
+ {id:'c_p1',g:SET,label:'R1 feeder pickup',min:200,max:1000,step:50,val:400,unit:'A',help:'Nearest the load. Lowest pickup.'},
+ {id:'c_t1',g:SET,label:'R1 time dial',min:0.05,max:1,step:0.01,val:0.1,unit:'',help:'Set as fast as possible. It is the first to act.'},
+ {id:'c_p2',g:SET,label:'R2 main pickup',min:400,max:1500,step:50,val:800,unit:'A',help:'Higher than R1, because it also carries load B.'},
+ {id:'c_t2',g:SET,label:'R2 time dial',min:0.05,max:1,step:0.01,val:0.15,unit:'',help:'Slower than R1 by one grading margin. Backup for R1.'},
+ {id:'c_p3',g:SET,label:'R3 incomer pickup',min:600,max:2500,step:50,val:1200,unit:'A',help:'Highest pickup. Carries all loads.'},
+ {id:'c_t3',g:SET,label:'R3 time dial',min:0.05,max:1,step:0.01,val:0.2,unit:'',help:'Slowest. Backup for R2. If it trips, everything is lost.'}
+]);
+const C={el:[0,0,0,0],open:[0,0,0,0],failed:false,who:0,at:0}, CX=[0,410,250,90], CN=['','Feeder','Main','Incomer'];
+const ctc=i=>{ const M=S.c_i/S['c_p'+i]; return M>1?Math.max(0.03,S['c_t'+i]*0.14/(Math.pow(M,0.02)-1)):Infinity; };
+function drawC(){
+  const l=52,t=12,W=560,H=330,pw=W-l-14,ph=H-t-40,lx=Math.log10(20000)-2,loc=+S.c_loc;
+  const x=I=>l+(Math.log10(Math.max(I,100))-2)/lx*pw, y=s=>t+(2-Math.log10(Math.min(Math.max(s,0.01),100)))/4*ph; let h='';
+  [100,200,500,1000,2000,5000,10000,20000].forEach(I=>{h+=L(x(I),t,x(I),t+ph,'grid')+T(x(I),H-22,I>=1000?I/1000+'k':I,'','middle')});
+  [0.01,0.1,1,10,100].forEach(s=>{h+=L(l,y(s),l+pw,y(s),'grid')+T(l-6,y(s)+4,s,'','end')});
+  h+=T(l+pw/2,H-4,'Current (A)','','middle')+`<text transform="translate(13 ${t+ph/2}) rotate(-90)" text-anchor="middle">Trip time (s)</text><rect x="${l}" y="${t}" width="${pw}" height="${ph}" class="ax"/>`;
+  const I0=S.c_i, ts=[0,ctc(1),ctc(2),ctc(3)];
+  for(let i=1;i<=3;i++){ const p=S['c_p'+i],k=S['c_t'+i]; let d='';
+    for(let I=p*1.015;I<=20000;I*=1.04) d+=(d?'L':'M')+x(I).toFixed(1)+' '+y(Math.max(0.03,k*0.14/(Math.pow(I/p,0.02)-1))).toFixed(1);
+    h+=`<path d="${d}" class="${['','acc','curve','wire'][i]}"/>`+T(x(p)+5,t+14,'R'+i,['','t-acc','t-set','t-fg'][i]); }
+  h+=L(x(I0),t,x(I0),t+ph,'tripline');
+  for(let i=loc;i<=3;i++) if(isFinite(ts[i])) h+=`<circle cx="${x(I0)}" cy="${y(ts[i])}" r="6" class="dot"/>`+T(x(I0)+10,y(ts[i])+4,'R'+i+' '+ft(ts[i]),'t-fg');
+  $('c_s').innerHTML=h;
+  const mg=(a,b)=>isFinite(ts[a])&&isFinite(ts[b])?(ts[b]-ts[a]).toFixed(2)+' s':'n/a';
+  read('c_r',[['R1',ft(ts[1])],['R2',ft(ts[2])],['R3',ft(ts[3])],['Margin R1 to R2',mg(1,2)],['Margin R2 to R3',mg(2,3)]]);
+  const up=loc+1, m=up<=3?ts[up]-ts[loc]:Infinity;
+  if(!isFinite(ts[loc])) face('c_f','warn',`R${loc} does not pick up`,`${I0} A is below the pickup of R${loc}, the relay that should clear this fault. The fault stays on until an upstream relay or nothing at all reacts.`);
+  else if(m<0) face('c_f','trip',`Wrong order: R${up} trips before R${loc}`,`At ${I0} A, R${up} operates in ${ft(ts[up])} and R${loc} in ${ft(ts[loc])}. The upstream breaker opens first and healthy load is lost. Raise the R${up} time dial or lower R${loc}.`);
+  else if(m<0.3) face('c_f','warn',`Margin too small: ${m.toFixed(2)} s`,`R${loc} operates in ${ft(ts[loc])} and R${up} only ${m.toFixed(2)} s later. That does not cover the breaker opening time, so both may trip. Aim for 0.3 s or more.`);
+  else face('c_f','ok',`Coordinated: R${loc} clears the fault in ${ft(ts[loc])}`, up<=3?`R${up} would follow ${m.toFixed(2)} s later, so it only trips if R${loc} or its breaker fails.`:`R3 is the last relay before the source. Nothing backs it up on this board.`);
+}
+B.c={face:'c_f',h:150,
+ rs(){ C.el=[0,0,0,0]; C.open=[0,0,0,0]; C.failed=false; C.who=0; },
+ sc(){ const xf=[0,450,370,210][+S.c_loc]; let h=`<path class="wire" d="M33 55H490"/>`+src(20);
+  for(let i=1;i<=3;i++){ const x=CX[i],xt=x+80;
+   h+=`<path class="dash" d="M${x} 26V46"/><rect id="c_b${i}" x="${x-9}" y="46" width="18" height="18" class="cbc"/><rect id="c_r${i}" x="${x-40}" y="6" width="80" height="20" rx="3" class="box"/>`+T(x,20,'R'+i+' '+CN[i],'t-fg','middle')
+    +`<rect x="${x-30}" y="72" width="60" height="6" class="ax"/><rect id="c_g${i}" x="${x-30}" y="72" width="0" height="6" class="tb"/><text id="c_x${i}" x="${x}" y="94" text-anchor="middle"></text>`
+    +`<g id="c_l${i}"><path class="wire" d="M${xt} 55V112"/><rect x="${xt-32}" y="112" width="64" height="24" class="box"/>`+T(xt,128,'Load '+'CBA'[i-1],'t-fg','middle')+`</g>`; }
+  return h+flow(`M40 55H${xf}`,S.c_i?60+S.c_i/20:0,true)+bolt(xf,55); },
+ step(dt,t,sv){ const loc=+S.c_loc, live=[1,2,3].every(i=>i<loc||!C.open[i]), ts=[0,ctc(1),ctc(2),ctc(3)];
+  const tmin=Math.min(...[1,2,3].filter(i=>i>=loc).map(i=>ts[i])), k=isFinite(tmin)?tmin/Math.min(4,Math.max(0.7,tmin)):1; let timing=[],prog=0;
+  for(let i=1;i<=3;i++){ const see=live&&i>=loc&&isFinite(ts[i]), stuck=i===1&&C.failed&&live;
+   if(C.open[i]||stuck){} else if(!see) C.el[i]=0;
+   else { C.el[i]+=dt*k; timing.push('R'+i); if(C.el[i]>=ts[i]){ C.el[i]=ts[i]; if(i===1&&S.c_fail==='yes') C.failed=true; else { C.open[i]=1; C.who=i; C.at=ts[i]; } } }
+   const fr=isFinite(ts[i])?C.el[i]/ts[i]:0; prog=Math.max(prog,fr);
+   $('c_g'+i).setAttribute('width',60*Math.min(1,fr));
+   $('c_x'+i).textContent=C.open[i]?'TRIPPED':stuck?'BREAKER STUCK':i<loc?'sees no fault':!isFinite(ts[i])?'no pickup':ft(C.el[i])+' / '+ft(ts[i]);
+   $('c_b'+i).setAttribute('class',C.open[i]?'cbo':stuck?'cbf':'cbc');
+   $('c_r'+i).setAttribute('class','box'+(C.open[i]?' rx':(see||stuck)?' rt':''));
+   $('c_l'+i).style.opacity=[1,2,3].some(j=>j>=i&&C.open[j])?0.25:1; }
+  B.c.open=C.who>0; sv.classList.toggle('open',!live);
+  const bar=$('c_bar'); bar.style.width=(C.who?100:prog*100)+'%'; bar.className=C.who?'tr':'';
+  const lost=['','Load C','Loads B and C','Loads A, B and C'][C.who];
+  $('c_tm').textContent=C.who?(C.who===loc?`R${loc} cleared the fault in ${ft(C.at)}. Lost: ${lost}. Correct.`:C.failed?`R1 breaker stuck. R${C.who} cleared the fault as backup in ${ft(C.at)}. Lost: ${lost}.`:`R${C.who} tripped before R${loc}. Lost: ${lost}. Miscoordinated.`):timing.length?timing.join(', ')+' timing. The fastest trips first.':'No relay picked up.';
+  sv.querySelectorAll('.flow').forEach(p=>{p.style.strokeDashoffset=-((t*p.dataset.v)%16)}); } };
+
+for(const k in B){ B[k].el=0; B[k].open=false;
+  $(B[k].face).insertAdjacentHTML('beforebegin',`<div class="live"><div class="fig"><svg id="${k}_sc" viewBox="0 0 560 ${B[k].h}" role="img" aria-label="Live view of the circuit and relay"></svg></div><div class="run"><div class="bar"><i id="${k}_bar"></i></div><span id="${k}_tm"></span><button class="preset" data-close="${k}">Close breaker</button></div></div>`); }
+$('f_z').parentNode.hidden=true;
+function scenes(){ for(const k in B) $(k+'_sc').innerHTML=B[k].sc(); }
+let lastT=0;
+function frame(ts){ const t=ts/1000,dt=Math.min(0.1,t-lastT); lastT=t;
+  for(const k in B){ const b=B[k],sv=$(k+'_sc'); if(sv.closest('section').hidden) continue;
+    if(b.step){ b.step(dt,RM?0:t,sv); continue; }
+    const e=b.ev();
+    if(!b.open){ if(!e) b.el=0; else { b.el+=dt*e.d/Math.min(4,Math.max(0.7,e.d)); if(b.el>=e.d){ b.open=true; b.msg=`TRIPPED by ${e.n} after ${ft(e.d)}. Breaker open.`; } } }
+    sv.classList.toggle('open',b.open); sv.dataset.st=b.open?'tr':e?'tm':'ok';
+    const bar=$(k+'_bar'); bar.style.width=(b.open?100:e?Math.min(100,b.el/e.d*100):0)+'%'; bar.className=b.open?'tr':'';
+    $(k+'_tm').textContent=b.open?b.msg:e?`${e.n} timing: ${ft(b.el)} of ${ft(e.d)}`:'Relay reset. Breaker closed.';
+    const tm=RM?0:t; sv.querySelectorAll('.flow').forEach(p=>{p.style.strokeDashoffset=-((tm*p.dataset.v)%16)});
+    if(b.fr) b.fr(tm);
+  }
+  requestAnimationFrame(frame); }
+(function(){ const sv=$('d_sc'); let drag=false;
+  const set=e=>{ const r=sv.getBoundingClientRect(),p=Math.round(((e.clientX-r.left)/r.width*560-80)/450*150); S.d_d=Math.min(150,Math.max(0,p)); $('d_d').value=S.d_d; reclose('d_d'); update(); };
+  sv.addEventListener('pointerdown',e=>{ drag=true; try{sv.setPointerCapture(e.pointerId)}catch(_){} set(e); });
+  sv.addEventListener('pointermove',e=>{ if(drag) set(e); });
+  sv.addEventListener('pointerup',()=>drag=false); sv.addEventListener('pointercancel',()=>drag=false); })();
+update(); show((location.hash||'').slice(1)||'basics'); requestAnimationFrame(frame);
+/* ---------- stories ---------- */
+const ST={
+basics:{steps:[
+ {t:'A normal day',x:'Power flows from the source, through the bus, to three loads. On the middle feeder a CT measures the current and passes a small copy to the relay. Everything is quiet.'},
+ {t:'The fault',x:'The insulation on the middle cable fails. Current takes a shortcut to earth and jumps to ten or twenty times its normal value. Every load on the bus feels the voltage dip.'},
+ {t:'The brains decide',x:'The relay compares what the CT tells it with its settings. The current is too high, and it has lasted too long. The relay sends a trip signal to the breaker.'},
+ {t:'The muscle acts',x:'The breaker opens. The fault current stops at once and the voltage on the bus recovers.'},
+ {t:'Only the faulty part',x:'Loads 1 and 3 never stopped. Only the faulted feeder was disconnected. That is the whole job: trip when needed, only where needed, as fast as possible.'}]},
+oc:{host:'oc_c',steps:[
+ {t:'A quiet morning',x:'The feeder carries 350 A to its loads. The relay is watching, but 350 A is below its 500 A pickup, so it stays calm.',p:{oc_i:350}},
+ {t:'The load grows',x:'More equipment starts and the current climbs to 700 A. The relay notices and starts its clock, but it is patient: a small overload may pass on its own.',p:{oc_i:700}},
+ {t:'A fault far away',x:'A cable fails at the far end and 2000 A rushes in. The higher the current, the shorter the relay\'s patience. Its timer runs out quickly and the breaker opens.',p:{oc_i:2000}},
+ {t:'A fault close by',x:'Now the fault is right at the switchboard and 6000 A flows. That is above the instantaneous setting, so there is no waiting at all.',p:{oc_i:6000}}]},
+under:{host:'u_c',steps:[
+ {t:'Pumping water',x:'The cooling pump works hard and draws 85% of its full-load current. To the relay, that current means water is moving.',p:{u_i:85}},
+ {t:'The tank runs dry',x:'The tank empties. The pump keeps spinning but pushes nothing, and its current drops to 35%. There is no fault, so no overcurrent relay will notice. This one does, and stops the pump before it destroys itself.',p:{u_i:35}},
+ {t:'End of the shift',x:'The operator switches the pump off and the current falls to zero. The relay is blocked while the motor is off, so it knows this is a normal stop.',p:{u_st:'off'}}]},
+volt:{host:'v_c',steps:[
+ {t:'A healthy supply',x:'The bus sits at 100% of its rated voltage, safely between the undervoltage and overvoltage settings.',p:{v_v:100}},
+ {t:'A motor starts',x:'A large motor starts and pulls the voltage down to 88% for a moment. That is still above 85%, so the relay lets it pass.',p:{v_v:88}},
+ {t:'The utility sags',x:'The utility supply collapses to 40%. The undervoltage element picks up and waits 2 s. The voltage does not return, so it operates and the transfer to the standby generator begins.',p:{v_v:40}},
+ {t:'The generator overshoots',x:'On the generator, the voltage regulator misbehaves and the voltage climbs to 118%. The overvoltage element trips after 1 s to protect the electronics.',p:{v_v:118}}]},
+dist:{host:'d_c',steps:[
+ {t:'A fault mid-line',x:'A fault halfway along the line. Voltage collapses and current rises. Voltage divided by current gives a small impedance: half the line. That is inside zone 1, so the relay trips instantly.',p:{d_d:50}},
+ {t:'Near the far end',x:'This time the fault is at 92% of the line. Zone 1 stops at 80% to leave a safety margin, so zone 2 catches it, a little later.',p:{d_d:92}},
+ {t:'On the next line',x:'Now the fault is far beyond the far bus, on someone else\'s line. The impedance is larger than either zone reaches, so the relay leaves it to its neighbour.',p:{d_d:140}},
+ {t:'Through an arc',x:'Another fault mid-line, but through an arc. The arc\'s resistance makes the fault look further away. It slips out of zone 1 and zone 2 has to clear it.',p:{d_d:50,d_rf:2.2}}]},
+diff:{host:'f_c',steps:[
+ {t:'In equals out',x:'Current flows into the transformer and the same current flows out. The relay compares both ends: the difference is almost zero.',p:{}},
+ {t:'A fault outside',x:'A fault on a downstream feeder pushes eight times normal current straight through. One CT saturates and reads 20% low. The relay expects some error at high current, so it stays calm.',p:{f_t:8,f_e:20}},
+ {t:'A fault inside',x:'Now the insulation fails inside the transformer. Current goes in but escapes through the fault instead of coming out. The difference is large, so both breakers trip instantly.',p:{f_f:5}}]},
+dir:{host:'r_c',steps:[
+ {t:'Power flows forward',x:'Two sources feed one bus. Normal load flows through the relay in its forward direction, well below its pickup.',p:{r_a:25,r_i:250}},
+ {t:'A fault in front',x:'A fault on the line in front of the relay. The current is high and lags the voltage by 65°, inside the forward half. Size and direction agree, so it trips.',p:{r_a:65,r_i:2000}},
+ {t:'A fault behind',x:'Now the fault is behind the relay. Just as much current flows, but in the other direction. The relay refuses to trip and leaves it to the relay that faces that fault.',p:{r_a:245,r_i:2000}}]},
+seq:{host:'p_c',steps:[
+ {t:'A, then B, then C',x:'The three phases peak one after another in the right order, and the motor turns forward.',p:{}},
+ {t:'After maintenance',x:'Two cables were reconnected the wrong way round. Every voltage is perfect, but the order is reversed and the motor starts turning backwards. The relay stops it.',p:{p_con:'bac'}},
+ {t:'A blown fuse',x:'A fuse blows on phase C. The order is still right, but the supply is badly unbalanced and the motor would overheat. The relay stops it.',p:{p_vc:0}}]},
+coord:{host:'c_c',steps:[
+ {t:'Three relays, one fault',x:'A fault on the feeder. All three relays see 3000 A and start their clocks together. R1, nearest the fault, is the fastest. It trips, and the other two reset. Only load C is lost.',p:{}},
+ {t:'The breaker sticks',x:'The same fault, but R1\'s breaker fails to open. R2 has been waiting as backup. It trips next. Loads B and C are lost, but the fault is cleared.',p:{c_fail:'yes'}},
+ {t:'A setting mistake',x:'Someone has set R2 too fast. Now R2 beats R1 and switches off load B for a fault that was never its business.',p:{c_t2:0.05}}]}
+};
+function applyState(host,p){ const pre={};
+  for(const id in D){ const d=D[id]; if(d.host!==host) continue; S[id]=d.val; $(id).value=d.val; pre[id.split('_')[0]]=1; }
+  for(const id in p){ S[id]=p[id]; $(id).value=p[id]; }
+  for(const k in pre){ const b=B[k]; if(b){ b.open=false; b.el=0; if(b.rs) b.rs(); } }
+  update(); }
+let bsI=0;
+function bsc(){ const i=bsI,f=i>=1&&i<3,open=i>=3,y=[35,85,135]; let h=`<path class="wire" d="M44 85H150"/><path class="bus" d="M150 22V148"/><circle cx="30" cy="85" r="14" class="box"/>`+T(30,90,'~','t-fg','middle');
+  y.forEach((yy,k)=>{ const mid=k===1,dead=mid&&open;
+   h+=`<path class="wire" d="M150 ${yy}H452"/><circle cx="210" cy="${yy}" r="7" class="f-none"/><rect x="251" y="${yy-9}" width="18" height="18" class="${dead?'cbo':'cbc'}"/><g style="opacity:${dead?.3:1}"><rect x="452" y="${yy-13}" width="80" height="26" class="box"/>`+T(492,yy+5,'Load '+(k+1),'t-fg','middle')+`</g>`;
+   h+=dead?'':flow(`M152 ${yy}H${mid&&f?376:448}`,mid&&f?320:70,mid&&f); });
+  h+=flow('M46 85H148',f?320:90,f)+`<path class="${i===2?'tripline':'dash'}" d="M210 92V109H234M260 100V94"/><rect x="234" y="100" width="52" height="18" rx="3" class="box ${i===2?'rx':''}"/>`+T(260,113,'relay','t-fg','middle');
+  if(i>=1) h+=bolt(380,85);
+  h+=T(210,22,'CT','','middle')+T(260,22,'breaker','','middle');
+  $('bs_sc').innerHTML=h; }
+function story(el){ const k=el.dataset.story,s=ST[k]; let i=0,tm=null;
+  el.innerHTML=`<div class="chap">${s.steps.map((x,j)=>`<button data-j="${j}"><b>${j+1}</b>${x.t}</button>`).join('')}</div><p class="say" aria-live="polite"></p><div class="ctrl"><button class="sb" data-a="prev">Back</button><button class="sb pri" data-a="play">Play the story</button><button class="sb" data-a="next">Next</button><div class="prog"><i></i></div></div>`;
+  const say=el.querySelector('.say'),prog=el.querySelector('.prog i'),pb=el.querySelector('[data-a=play]');
+  const stop=()=>{ clearInterval(tm); tm=null; pb.textContent='Play the story'; el.classList.remove('playing'); };
+  const go=j=>{ i=Math.max(0,Math.min(s.steps.length-1,j));
+    el.querySelectorAll('.chap button').forEach((b,n)=>{ b.classList.toggle('on',n===i); b.classList.toggle('past',n<i); });
+    say.classList.remove('in'); void say.offsetWidth; say.textContent=s.steps[i].x; say.classList.add('in');
+    prog.style.animation='none'; void prog.offsetWidth; prog.style.animation='';
+    if(s.host) applyState(s.host,s.steps[i].p||{}); else { bsI=i; bsc(); } storyReached(k,i); };
+  el.onclick=e=>{ const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.j!==undefined){ stop(); go(+b.dataset.j); }
+    else if(b.dataset.a==='prev'){ stop(); go(i-1); }
+    else if(b.dataset.a==='next'){ stop(); go(i+1); }
+    else if(b.dataset.a==='play'){ if(tm){ stop(); return; } if(i>=s.steps.length-1) go(0); else go(i);
+      pb.textContent='Pause'; el.classList.add('playing');
+      tm=setInterval(()=>{ if(i>=s.steps.length-1) stop(); else go(i+1); },7000); } };
+  go(0); }
+/* ---------- quizzes: unlocked by finishing the story ---------- */
+const QZ={"oc": [{"k": "Definition", "q": "What does the 51 pickup setting define?", "o": ["The current at which the relay starts timing", "The time the relay waits before tripping", "The largest fault current the breaker can interrupt", "The rated current of the cable"], "a": 0, "e": "Below pickup the relay does nothing. Above it, the timer starts."}, {"k": "Scenario", "q": "Normal load on the feeder is 450 A. Someone has set the 51 pickup to 400 A. Test it on the bench: what happens?", "p": {"oc_i": 450, "oc_pu": 400}, "o": ["Nothing, 450 A is normal load", "The relay times out and trips a healthy feeder", "The 50 element trips instantly", "The relay blocks the breaker"], "a": 1, "e": "Pickup must sit above the highest normal load, otherwise the relay trips on healthy load."}, {"k": "Scenario", "q": "A 2000 A fault takes about 1 s to clear. The upstream relay needs this feeder to clear faster. Test it: which setting do you change?", "p": {"oc_i": 2000}, "o": ["Raise the 51 pickup", "Raise the 50 pickup", "Lower the time dial (TMS)", "Change the CT"], "a": 2, "e": "The time dial moves the whole curve down, so every fault clears faster without changing pickup."}, {"k": "Scenario", "q": "A fault just after the downstream breaker gives 5000 A at this relay. The downstream breaker should clear it. The 50 element is set to 4000 A. Test it: what goes wrong?", "p": {"oc_i": 5000}, "o": ["Nothing, it is coordinated", "This relay trips instantly and beats the downstream breaker", "The relay never trips", "The relay trips after a long delay"], "a": 1, "e": "The 50 setting must be above the largest fault the next downstream device is meant to clear."}], "under": [{"k": "Definition", "q": "What is the time delay setting on an undercurrent relay for?", "o": ["To let the current rise", "To ride through brief drops in load without tripping", "To wait for the breaker to close", "To delay the motor start"], "a": 1, "e": "Short dips in load are normal. Only a lasting low current means the load has gone."}, {"k": "Scenario", "q": "The pump’s lightest normal duty draws 45% of full load. The 37 pickup is 50%. Test it: what happens?", "p": {"u_i": 45}, "o": ["Nothing, the pump is working", "The relay trips a pump that is working normally", "The overcurrent relay trips", "The relay is blocked"], "a": 1, "e": "The pickup must be below the lightest normal load, or healthy running looks like a lost load."}, {"k": "Scenario", "q": "Blocking has been switched off. The operator stops the pump at the end of the shift. Test it: what happens?", "p": {"u_st": "off", "u_bl": "off"}, "o": ["Nothing, the stop is normal", "The relay operates on a planned stop", "The motor restarts", "The pickup changes"], "a": 1, "e": "Without blocking, zero current on a normal stop looks the same as a lost load."}, {"k": "Scenario", "q": "No-load current is 30% and the lightest normal load is 60%. Which pickup is right?", "o": ["20%", "45%", "70%", "100%"], "a": 1, "e": "It has to sit between the two: above no-load, below the lightest normal load."}], "volt": [{"k": "Definition", "q": "The 27 element is set to 85% with a 2 s delay. What does that mean?", "o": ["It trips whenever voltage drops below 100%", "It operates if voltage stays below 85% for more than 2 s", "It operates if voltage rises above 85%", "It operates after 85 s"], "a": 1, "e": "Both conditions are needed: low enough, for long enough."}, {"k": "Scenario", "q": "A motor start dips the voltage to 80% for about one second. The 27 delay has been set to 0.1 s. Test it: what happens?", "p": {"v_v": 80, "v_27t": 0.1}, "o": ["Nothing, the dip is short", "The relay operates and starts a transfer for no reason", "The 59 element trips", "The motor stalls"], "a": 1, "e": "The delay must be longer than normal dips, so they pass without an operation."}, {"k": "Scenario", "q": "The generator voltage reaches 112%. The 59 element is set to 110% with 1 s delay. Test it: what happens?", "p": {"v_v": 112}, "o": ["Nothing, 112% is acceptable", "The 27 element operates", "The 59 element trips after 1 s", "The relay trips instantly"], "a": 2, "e": "112% is above the 110% setting, so it trips once the 1 s delay has run."}, {"k": "Scenario", "q": "The UPS can carry the critical load for 10 s. Someone sets the 27 delay to 15 s. What is the risk?", "o": ["None, longer is safer", "The UPS runs out before the transfer to the generator starts", "The relay trips too often", "The voltage rises"], "a": 1, "e": "The undervoltage delay must be shorter than what the load can ride through."}], "dist": [{"k": "Definition", "q": "What is the reach of a zone?", "o": ["The longest cable on site", "The impedance limit inside which that zone operates", "The trip time of the zone", "The current setting"], "a": 1, "e": "Measured impedance inside the reach means the fault is within that distance."}, {"k": "Scenario", "q": "Zone 1 has been set to 100% of the line. A fault happens at 105%, on the next line. Test it: what happens?", "p": {"d_d": 105, "d_z1": 100}, "o": ["The relay ignores it", "Zone 2 trips after its delay", "Zone 1 trips instantly for a fault that is not on its line", "The relay blocks"], "a": 2, "e": "That is over-reach. It is why zone 1 is kept at 80 to 90%."}, {"k": "Scenario", "q": "A solid fault at 90% of the line, with the original settings. Test it: which zone operates?", "p": {"d_d": 90}, "o": ["Zone 1, instantly", "Zone 2, after its delay", "No zone", "Both zones at once"], "a": 1, "e": "Zone 1 stops at 80%, so the last part of the line is covered by zone 2."}, {"k": "Scenario", "q": "A fault mid-line through an arc is cleared by zone 2, not zone 1. Test it: why?", "p": {"d_d": 50, "d_rf": 2.5}, "o": ["The arc resistance makes the fault look further away", "The CT is faulty", "Zone 1 is switched off", "The fault current is too high"], "a": 0, "e": "Fault resistance adds to the measured impedance and pushes it out of zone 1."}], "diff": [{"k": "Definition", "q": "What does the slope setting do?", "o": ["Sets the trip delay", "Demands more differential current as through current rises", "Sets the CT ratio", "Sets the direction"], "a": 1, "e": "It lets the relay tolerate CT errors that grow during heavy through faults."}, {"k": "Scenario", "q": "The slope has been lowered to 10%. A heavy fault outside the zone saturates a CT. Test it: what happens?", "p": {"f_t": 8, "f_e": 20, "f_sl": 10}, "o": ["The relay stays quiet", "The relay trips for a fault outside its zone", "The relay trips after a delay", "The CT recovers"], "a": 1, "e": "With too little slope, CT error alone looks like an internal fault."}, {"k": "Scenario", "q": "A small internal fault of 0.4 pu. The minimum pickup has been raised to 0.5 pu. Test it: what happens?", "p": {"f_f": 0.4, "f_pu": 0.5}, "o": ["The relay trips instantly", "The relay misses the fault", "The relay trips after a delay", "The overcurrent relay trips instead, instantly"], "a": 1, "e": "Minimum pickup sets how sensitive the relay is. Too high and small internal faults are missed."}, {"k": "Definition", "q": "Why does a differential relay have no time-delay setting for coordination?", "o": ["Its CTs are faster", "It only sees faults inside its own zone", "It measures voltage too", "It always trips last"], "a": 1, "e": "Faults outside the zone are not its concern, so there is nothing to coordinate with."}], "dir": [{"k": "Definition", "q": "What is the characteristic angle on a directional relay?", "o": ["The angle between the CTs", "The current angle at which the relay is most sensitive, set to match the expected fault angle", "The phase shift of the transformer", "The angle of the cable"], "a": 1, "e": "It centres the forward region on the angle fault current normally has."}, {"k": "Scenario", "q": "2000 A flows towards a fault behind the relay. Test it: what does the 67 relay do?", "h": "r_c", "p": {"r_a": 245, "r_i": 2000}, "o": ["Trips instantly", "Trips after its delay", "Blocks, because the direction is reverse", "Raises its pickup"], "a": 2, "e": "Size alone is not enough. Direction must also be forward."}, {"k": "Scenario", "q": "After cable work, phases B and C were swapped at a motor supply. Test it: what does the 47 relay do?", "h": "p_c", "p": {"p_con": "acb"}, "o": ["Nothing, the voltages are healthy", "Detects the reversed order and stops the motor", "Trips on overcurrent", "Swaps the phases back"], "a": 1, "e": "It checks the order of the phases, not only their size."}, {"k": "Scenario", "q": "The wiring is correct, but the expected rotation has been set to A-C-B. Test it: what happens?", "h": "p_c", "p": {"p_seq": "acb"}, "o": ["The motor runs normally", "The relay stops a healthy motor", "The relay ignores everything", "The voltage becomes unbalanced"], "a": 1, "e": "The expected rotation must match the equipment, or a correct supply looks reversed."}], "coord": [{"k": "Definition", "q": "What is the grading margin?", "o": ["The gap between two pickup settings", "The time gap between neighbouring relays at the same fault current", "The breaker rating", "The delay of the slowest relay"], "a": 1, "e": "It must cover breaker opening time plus tolerance, typically 0.3 to 0.4 s."}, {"k": "Scenario", "q": "R2’s time dial has been set to 0.11. Test it and check the margin between R1 and R2: is it acceptable?", "p": {"c_t2": 0.11}, "o": ["Yes, any positive margin is fine", "No, it is under 0.3 s, so both may trip", "No, R2 never picks up", "Yes, it is over 1 s"], "a": 1, "e": "A small margin does not leave time for R1’s breaker to open before R2 also trips."}, {"k": "Scenario", "q": "R1’s breaker is stuck. Test it: who clears the fault?", "p": {"c_fail": "yes"}, "o": ["Nobody", "R2, as backup, after its longer delay", "R3, instantly", "R1, after it resets"], "a": 1, "e": "This is why upstream relays are set slower, not switched off."}, {"k": "Scenario", "q": "R2’s time dial has been set to 0.05. A fault occurs on the feeder. Test it: what goes wrong, and what is the fix?", "p": {"c_t2": 0.05}, "o": ["Nothing goes wrong", "R2 trips first and load B is lost. Raise R2’s time dial", "R1 trips twice. Lower R1’s pickup", "R3 trips. Lower R3’s time dial"], "a": 1, "e": "Each relay upstream must be slower than the one below it by one grading margin."}]};
+const QHOST={oc:'oc_c',under:'u_c',volt:'v_c',dist:'d_c',diff:'f_c',dir:'r_c',coord:'c_c'};
+const QSTORY={oc:['oc'],under:['under'],volt:['volt'],dist:['dist'],diff:['diff'],dir:['dir','seq'],coord:['coord']};
+let REACH={}; try{ REACH=JSON.parse(localStorage.getItem('rtb-reach')||'{}')||{}; }catch(_){}
+const lastOf=s=>ST[s].steps.length-1;
+const unlocked=k=>QSTORY[k].every(s=>(REACH[s]||0)>=lastOf(s));
+const LOCK='<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+function storyReached(s,i){ if(i<=(REACH[s]||0)&&REACH[s]!==undefined) return; const k=Object.keys(QSTORY).find(q=>QSTORY[q].includes(s)); if(!k) { REACH[s]=i; return; }
+  const was=unlocked(k); REACH[s]=Math.max(REACH[s]||0,i); try{ localStorage.setItem('rtb-reach',JSON.stringify(REACH)); }catch(_){}
+  quiz(k, !was&&unlocked(k)); }
+function toast(k){ let t=$('toast'); if(!t){ document.body.insertAdjacentHTML('beforeend','<div id="toast" role="status"></div>'); t=$('toast'); }
+  t.className='';t.innerHTML='<b>Quiz unlocked</b><span>You finished the story. Test what you learned.</span><button class="sb pri">Go to the quiz</button>';
+  t.querySelector('button').onclick=()=>{ $(k).querySelector('.quiz').scrollIntoView({behavior:'smooth',block:'start'}); t.classList.remove('show'); };
+  t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),7000); }
+function quiz(k,fresh){ const el=$(k).querySelector('.quiz');
+  if(!unlocked(k)){ const parts=QSTORY[k].map(s=>{ const n=lastOf(s)+1,r=Math.min(n,(REACH[s]||0)+1); return `<div class="lp"><span>${ST[s].steps[0].t}…</span><div class="lb"><i style="width:${r/n*100}%"></i></div><em>${r} of ${n} chapters</em></div>`; }).join('');
+    el.className='quiz locked'; el.innerHTML=`<div class="lockic">${LOCK}</div><div><h3>Quiz locked</h3><p>Finish ${QSTORY[k].length>1?'both stories':'the story'} on this page to unlock it. Reach the last chapter to open the quiz.</p>${parts}</div>`; return; }
+  let n=0,done=0; const Q=QZ[k];
+  el.className='quiz'+(fresh?' fresh':'');
+  el.innerHTML=`<div class="qh"><div><span class="qbadge">Quiz unlocked</span><h3>Test your understanding</h3></div><span class="score">${Q.length} questions</span></div>`+Q.map((q,i)=>`<div class="qq"><span class="qtag ${q.k===C_?'sc':''}">${q.k}</span><p>${i+1}. ${q.q}</p>${q.p?`<button class="test" data-q="${i}">Test it on the bench</button>`:''}<div class="qo">${q.o.map((o,j)=>`<button data-i="${i}" data-j="${j}">${o}</button>`).join('')}</div><p class="qe" hidden></p></div>`).join('')+`<div class="qend" hidden></div><div><button class="retry">Start again</button></div>`;
+  el.onclick=e=>{ const b=e.target.closest('button'); if(!b) return;
+    if(b.classList.contains('retry')){ quiz(k); return; }
+    if(b.dataset.q!==undefined){ const q=Q[b.dataset.q],h=q.h||QHOST[k]; applyState(h,q.p); $(h).closest('.bench').scrollIntoView({behavior:'smooth',block:'start'}); b.textContent='Loaded on the bench. Scroll back here to answer'; b.classList.add('done'); return; }
+    const q=Q[b.dataset.i],box=b.parentNode; if(box.dataset.done) return; box.dataset.done=1;
+    const right=+b.dataset.j===q.a; box.querySelectorAll('button').forEach((x,j)=>{ x.disabled=true; if(j===q.a) x.classList.add('ok'); }); if(!right) b.classList.add('no');
+    const pe=box.nextElementSibling; pe.hidden=false; pe.textContent=(right?'Correct. ':'Not quite. ')+q.e; n+=right; done++;
+    el.querySelector('.score').textContent=`${n} of ${done} correct`;
+    if(done===Q.length){ const end=el.querySelector('.qend'); end.hidden=false; end.innerHTML=`<b>${n} of ${Q.length}</b><span>${n===Q.length?'Full marks. You can read these settings like an engineer.':'Replay the story or test the scenarios again, then start again.'}</span>`; } };
+  if(fresh){ toast(k); setTimeout(()=>el.classList.remove('fresh'),4000); } }
+const C_='Scenario';
+for(const k in QZ){ $(k).insertAdjacentHTML('beforeend','<div class="quiz"></div>'); quiz(k); }
+document.querySelectorAll('.story').forEach(story);
+(function(){ const sp=$('splash'); if(!sp) return; const t0=performance.now();
+  const go=()=>{ sp.classList.add('out'); setTimeout(()=>sp.remove(),600); };
+  const min=RM?1200:2700, done=()=>setTimeout(go,Math.max(0,min-(performance.now()-t0)));
+  sp.addEventListener('click',go);
+  if(document.readyState==='complete') done(); else addEventListener('load',done,{once:true});
+  setTimeout(go,5500); })();
+(function(){ const NAME='Engr. Atheer Babeer',el=$('evname'); let ok=el.textContent,k=0;
+  const JOKES=['Nice try. This name sits inside a differential zone: anything that leaves it trips instantly.',
+   'Protection operated in 0 ms. Engr. Atheer Babeer is restored and the breaker is locked out.',
+   'Undervoltage detected in your intentions. Name restored.',
+   'Selectivity rule: delete anything you like, except the engineer.',
+   'Reverse power detected. The name flows back to its owner.'];
+  const caretEnd=()=>{ const r=document.createRange(); r.selectNodeContents(el); r.collapse(false); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); };
+  el.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); el.blur(); } });
+  el.addEventListener('paste',e=>{ e.preventDefault(); const t=(e.clipboardData||window.clipboardData).getData('text').replace(/\s+/g,' '); document.execCommand('insertText',false,t); });
+  el.addEventListener('input',()=>{ const t=el.textContent.replace(/\s+/g,' ');
+    if(t.includes(NAME)&&t.length<=90){ ok=t; return; }
+    el.textContent=ok; caretEnd();
+    if(t.length>90) return;
+    let tt=$('toast'); if(!tt){ document.body.insertAdjacentHTML('beforeend','<div id="toast" role="status"></div>'); tt=$('toast'); }
+    tt.className='joke'; tt.innerHTML='<b>Trip! Protected name detected</b><span>'+JOKES[k++%JOKES.length]+'</span><button class="tx" aria-label="Close">&times;</button>';
+    const hide=()=>tt.classList.remove('show'), arm=ms=>{ clearTimeout(tt._h); tt._h=setTimeout(hide,ms); };
+    tt.querySelector('.tx').onclick=hide;
+    tt.onmouseenter=()=>clearTimeout(tt._h); tt.onmouseleave=()=>arm(5000);
+    tt.ontouchstart=()=>clearTimeout(tt._h);
+    requestAnimationFrame(()=>tt.classList.add('show')); arm(12000); });
+})();
+(function bsLoop(ts){ if(!$('basics').hidden){ const t=RM?0:ts/1000; $('bs_sc').querySelectorAll('.flow').forEach(p=>{p.style.strokeDashoffset=-((t*p.dataset.v)%16)}); } requestAnimationFrame(bsLoop); })(0);
+
+</script>
+
+</body></html>
